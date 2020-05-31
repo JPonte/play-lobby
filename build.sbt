@@ -10,7 +10,7 @@ scalaVersion := "2.13.2"
 //libraryDependencies += guice
 libraryDependencies ++= Seq(
   guice,
-  "org.abstractj.kalium" % "kalium" % "0.8.0",
+  "org.jsoup" % "jsoup" % "1.12.1",
   "org.scalatestplus.play" %% "scalatestplus-play" % "5.0.0" % Test
 )
 

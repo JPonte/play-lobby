@@ -1,18 +1,19 @@
 package controllers
 
 import actions.{UserAction, UserRequest}
-import actors.{ChatActor, ChatManager}
+import actors.{LobbyActor, LobbyManager}
 import akka.actor.{ActorSystem, Props}
 import javax.inject.{Inject, Singleton}
 import play.api.libs.streams.ActorFlow
 import play.api.mvc.{Action, AnyContent, BaseController, ControllerComponents, WebSocket}
+import scala.concurrent.Future
 
 @Singleton
 class LobbyController @Inject()(val controllerComponents: ControllerComponents,
                                 userAction: UserAction,
                                )(implicit system: ActorSystem) extends BaseController {
 
-  private val chatManager = system.actorOf(Props[ChatManager], "ChatManager")
+  private val chatManager = system.actorOf(Props[LobbyManager], "ChatManager")
 
   def index(): Action[AnyContent] = userAction { implicit request: UserRequest[AnyContent] =>
     request.username.fold(Redirect(routes.LoginController.login())) { _ =>
@@ -21,12 +22,14 @@ class LobbyController @Inject()(val controllerComponents: ControllerComponents,
     }
   }
 
-  def socket(): WebSocket = WebSocket.accept[String, String] { request =>
-    val username = UserAction.extractUsername(request)
-    println(s"$username connected")
-    ActorFlow.actorRef { out =>
-      username.fold(???){u => ChatActor.props(u, out, chatManager)}
-    }
+  def socket(): WebSocket = WebSocket.acceptOrResult[String, String] { implicit request =>
+    Future.successful(UserAction.extractUsername(request) match {
+      case None => Left(Forbidden)
+      case Some(username) =>
+        Right(ActorFlow.actorRef { out =>
+          LobbyActor.props(username, out, chatManager)
+        })
+    })
   }
 
 }

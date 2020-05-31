@@ -5,7 +5,7 @@
   <div id="login-container">
     <h1>Bobby Lobby</h1>
     <h2>Please login</h2>
-    <form method="post" action="validateLogin">
+    <form method="post" action="@routes.LoginController.validateLogin">
       @helper.CSRF.formField
       <label>Username:</label><br>
       <input type="text" name="username"><br>
@@ -13,5 +13,8 @@
       <input type="password" name="password"><br><br>
       <input type="submit" value="Submit">
     </form>
+    <br>
+    <label>Don't have an account? Register <a href="@routes.LoginController.register">here</a>.</label>
+
   </div>
 }
