@@ -3,16 +3,21 @@ package actors
 import actors.LobbyManager._
 import akka.actor.{Actor, ActorRef}
 import models.{LobbyCommand, PrivateCommand, SystemLobbyMessage, Username, WebSocketCommand}
+import akka.pattern.pipe
+
+import scala.concurrent.{ExecutionContext, Future}
 
 class LobbyManager extends Actor {
 
   private var usersMap = Map.empty[Username, Set[ActorRef]]
 
   override def receive: Receive = {
+    case UserList() =>
+      implicit val ec: ExecutionContext = context.dispatcher
+      Future(usersMap.keys).pipeTo(sender())
     case NewUser(username, actor) =>
       val existingActors = usersMap.getOrElse(username, Set())
       usersMap = usersMap + (username -> (existingActors + actor))
-      println(existingActors)
       if (existingActors.isEmpty) {
         self ! Command(SystemLobbyMessage(s"${username.value} joined the lobby"))
       }
@@ -36,4 +41,5 @@ object LobbyManager {
   case class NewUser(username: Username, actor: ActorRef)
   case class UserLeft(username: Username, actor: ActorRef)
   case class Command(command: WebSocketCommand)
+  case class UserList()
 }

@@ -1,52 +1,40 @@
-@(webSocketUrl: String)(implicit flash: Flash)
+@(webSocketUrl: String, username: String, players: Seq[String])(implicit flash: Flash)
 
 @main("Lobby") {
-<input type="submit" value="Create Game">
-<a href="@routes.LoginController.logout()">Logout</a>
-<br>
-<label>Players</label>
-<nav>
-    <ul>
-        <li>Player 1</li>
-        <li>Player 2</li>
-        <li>Player 3</li>
-        <li>Player 4</li>
-        <li>Player 5</li>
-        <li>Player 6</li>
-        <li>Player 7</li>
-        <li>Player 8</li>
-        <li>Player 9</li>
-        <li>Player 10</li>
-        <li>Player 11</li>
-        <li>Player 13</li>
-        <li>Player 13</li>
-    </ul>
-</nav>
-
-<label>Games</label>
-<nav>
-    <ul>
-        <li>Game 1</li>
-        <li>Game 2</li>
-        <li>Game 3</li>
-        <li>Game 4</li>
-        <li>Game 5</li>
-        <li>Game 6</li>
-        <li>Game 7</li>
-        <li>Game 8</li>
-        <li>Game 9</li>
-        <li>Game 10</li>
-        <li>Game 11</li>
-        <li>Game 13</li>
-        <li>Game 13</li>
-    </ul>
-</nav>
-
-<label>Lobby chat</label>
-<br>
-<textarea rows="10" cols="60" readonly id="lobby-chat-textarea"></textarea>
-<br>
-<input type="text" id="lobby-message-input">
+<h1>Hi @username</h1>
+<div id="actions-header">
+    <a href="">Create Game</a>
+    <a href="@routes.LoginController.logout()">Logout</a>
+</div>
+<div id="social-container">
+    <div id="player-list">
+        <label>Players</label>
+        <nav>
+            <ul>
+                @for(player <- players) {
+                <li>@player</li>
+                }
+            </ul>
+        </nav>
+    </div>
+    <div id="chat-container">
+        <label>Lobby chat</label>
+        <textarea rows="10" cols="60" readonly id="lobby-chat-textarea"></textarea>
+        <input type="text" id="lobby-message-input">
+    </div>
+</div>
+<div id="games-container">
+    <label>Games</label>
+    <nav>
+        <ul>
+            <li>Game 1</li>
+            <li>Game 2</li>
+            <li>Game 3</li>
+            <li>Game 4</li>
+            <li>Game 5</li>
+        </ul>
+    </nav>
+</div>
 
 <script src='@routes.Assets.versioned("javascripts/main.js")' type='text/javascript' data-url='@webSocketUrl'></script>
 }

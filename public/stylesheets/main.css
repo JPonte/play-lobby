@@ -8,6 +8,47 @@
   flex-direction: column;
 }
 
+#actions-header {
+  display: flex;
+  align-items: start;
+  flex-direction: column;
+}
+
+#social-container {
+  display: flex;
+  align-items: center | stretch;
+  flex-direction: row;
+}
+
+#player-list {
+    flex-grow: 2;
+    margin: 8px;
+    padding: 8px;
+    background: #dddddd;
+    border-radius: 4px;
+}
+#chat-container {
+    flex-grow: 3;
+    margin: 8px;
+    padding: 8px;
+    background: #dddddd;
+    border-radius: 4px;
+}
+
+#games-container {
+    margin: 8px;
+    padding: 8px;
+    background: #dddddd;
+    border-radius: 4px;
+}
+
+#chat-container {
+  display: flex;
+  align-items: start;
+  flex-direction: column;
+}
+
+
 input[type=text], input[type=password], select {
   padding: 12px 12px;
   margin: 8px 0px;
@@ -44,6 +85,3 @@ form {
   padding: 20px;
   width: 20em;
 }
-
-nav ul{height:200px; width:18%;}
-nav ul{overflow:hidden; overflow-y:scroll;}
