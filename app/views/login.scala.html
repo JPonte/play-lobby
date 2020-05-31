@@ -1,0 +1,17 @@
+@()(implicit request: RequestHeader, flash: Flash)
+
+@main("Login") {
+
+  <div id="login-container">
+    <h1>Bobby Lobby</h1>
+    <h2>Please login</h2>
+    <form method="post" action="validateLogin">
+      @helper.CSRF.formField
+      <label>Username:</label><br>
+      <input type="text" name="username"><br>
+      <label>Password:</label><br>
+      <input type="password" name="password"><br><br>
+      <input type="submit" value="Submit">
+    </form>
+  </div>
+}
