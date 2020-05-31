@@ -10,7 +10,7 @@
     <div id="player-list">
         <label>Players</label>
         <nav>
-            <ul>
+            <ul id="lobby-user-list">
                 @for(player <- players) {
                 <li>@player</li>
                 }
@@ -26,12 +26,7 @@
 <div id="games-container">
     <label>Games</label>
     <nav>
-        <ul>
-            <li>Game 1</li>
-            <li>Game 2</li>
-            <li>Game 3</li>
-            <li>Game 4</li>
-            <li>Game 5</li>
+        <ul id="lobby-game-list">
         </ul>
     </nav>
 </div>

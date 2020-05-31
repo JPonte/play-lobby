@@ -14,6 +14,15 @@ libraryDependencies ++= Seq(
   "org.scalatestplus.play" %% "scalatestplus-play" % "5.0.0" % Test
 )
 
+val circeVersion = "0.12.3"
+
+libraryDependencies ++= Seq(
+  "io.circe" %% "circe-core",
+  "io.circe" %% "circe-generic",
+  "io.circe" %% "circe-parser"
+).map(_ % circeVersion)
+
+
 // Adds additional packages into Twirl
 //TwirlKeys.templateImports += "com.example.controllers._"
 

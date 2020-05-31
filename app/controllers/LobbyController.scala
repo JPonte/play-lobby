@@ -19,14 +19,16 @@ class LobbyController @Inject()(val controllerComponents: ControllerComponents,
                                 userAction: UserAction
                                )(implicit system: ActorSystem, executionContext: ExecutionContext) extends BaseController {
 
-  private val chatManager = system.actorOf(Props[LobbyManager], "ChatManager")
+  private val lobbyManager = system.actorOf(Props[LobbyManager], "LobbyManager")
 
   def index(): Action[AnyContent] = userAction.async { implicit request: UserRequest[AnyContent] =>
     implicit val timeout: Timeout = Timeout(5.seconds)
-    (chatManager ? LobbyManager.UserList()).map(_.asInstanceOf[Set[Username]]).map { currentUsers  =>
+    (lobbyManager ? LobbyManager.UserList()).map(_.asInstanceOf[Set[Username]]).map { currentUsers  =>
       request.username.fold(Redirect(routes.LoginController.login())) { _ =>
         val webSocketUrl = routes.LobbyController.socket().webSocketURL()
-        Ok(views.html.index(webSocketUrl, request.username.map(_.value).getOrElse(""), currentUsers.map(_.value).toSeq))
+        val username = request.username.map(_.value).getOrElse("")
+        val usersSeq = currentUsers.map(_.value).toSeq
+        Ok(views.html.index(webSocketUrl, username, usersSeq))
       }
     }
   }
@@ -36,7 +38,7 @@ class LobbyController @Inject()(val controllerComponents: ControllerComponents,
       case None => Left(Forbidden)
       case Some(username) =>
         Right(ActorFlow.actorRef { out =>
-          LobbyActor.props(username, out, chatManager)
+          LobbyActor.props(username, out, lobbyManager)
         })
     })
   }

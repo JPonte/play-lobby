@@ -2,7 +2,9 @@ package actors
 
 import actors.LobbyActor.SendCommand
 import akka.actor.{Actor, ActorRef, Props}
-import models.{LobbyMessage, SystemLobbyMessage, Username, WebSocketCommand}
+import io.circe.generic.auto._
+import io.circe.syntax._
+import models.{LobbyMessage, Username, WebSocketCommand}
 
 class LobbyActor(username: Username, out: ActorRef, manager: ActorRef) extends Actor {
 
@@ -10,8 +12,7 @@ class LobbyActor(username: Username, out: ActorRef, manager: ActorRef) extends A
 
   override def receive: Receive = {
     case message: String => manager ! LobbyManager.Command(LobbyMessage(username, message))
-    case SendCommand(LobbyMessage(sender, content)) => out ! s"${sender.value}: $content"
-    case SendCommand(SystemLobbyMessage(content)) => out ! content
+    case SendCommand(command) => out ! command.asJson.spaces2
     case m => println(s"Unhandled message: $m")
   }
 
