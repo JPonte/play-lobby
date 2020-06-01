@@ -13,7 +13,7 @@ object MainApp {
 
   case class BoardDrawProps(drawRect: Rect, columns: Int, rows: Int) {
     val hexRadius: Int = Math
-      .min(drawRect.width / (columns * 2), drawRect.height / (rows * 2))
+      .min(drawRect.width / (columns * 2), drawRect.height / (rows * 1.5))
       .toInt
     val xStep = 2 * hexRadius * Math.cos(Math.PI / 6)
     val yStep = hexRadius + hexRadius * Math.sin(Math.PI / 6)
@@ -75,7 +75,7 @@ object MainApp {
       prevTime = time
 
       boardDrawProps = BoardDrawProps(
-        Rect(0, 0, dom.window.innerWidth, dom.window.innerHeight),
+        Rect(dom.window.innerWidth * 0.1, 0, dom.window.innerWidth * 0.8, dom.window.innerWidth * 0.5),
         cols,
         rows
       )
@@ -105,10 +105,9 @@ object MainApp {
 
     board.foreach {
       case ((x, y), boardTile) =>
-        val centerX =
-          if (y % 2 == 0) x * props.xStep + props.xStep
-          else x * props.xStep + props.xStep / 2
-        val centerY = y * props.yStep + props.yStep
+        val offsetX = if (y % 2 == 0) props.xStep / 2 else 0
+        val centerX = x * props.xStep + props.xStep / 2 + offsetX + props.drawRect.x
+        val centerY = y * props.yStep + props.yStep + props.drawRect.y
 
         val isHoveredHex = hoveredHex.exists(hh => hh._1 == x && hh._2 == y)
 
@@ -220,11 +219,11 @@ object MainApp {
       props: BoardDrawProps
   ): Option[(Int, Int)] = {
 
-    val row = (mouse.y - props.yStep) / props.yStep
+    val row = (mouse.y - props.yStep - props.drawRect.y) / props.yStep
     val col =
       if (Math.round(row) % 2 == 0)
-        (mouse.x - props.xStep) / props.xStep
-      else (mouse.x - props.xStep / 2) / props.xStep
+        (mouse.x - props.xStep - props.drawRect.x) / props.xStep
+      else (mouse.x - props.xStep / 2 - props.drawRect.x) / props.xStep
 
     Some(Math.round(col).toInt, Math.round(row).toInt)
   }
