@@ -1,12 +1,17 @@
 package samurai
 
 import samurai.Tile._
+import samurai.Figure._
 import Board._
 
 object Board {
-  type Board = Seq[Seq[Tile]]
 
-  val twoPlayerBoard: Seq[Seq[Tile]] = Seq(
+  case class BoardTile(tile: Tile, figure: Option[Figure], piece: Option[Token])
+
+  type Board = Seq[Seq[BoardTile]]
+  type SparseMatrix[T] = Map[(Int, Int), T]
+
+  val twoPlayerBoard: Seq[Seq[BoardTile]] = Seq(
     Seq(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1),
     Seq(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 3, 1),
     Seq(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 2, 1),
@@ -18,11 +23,9 @@ object Board {
     Seq(1, 1, 1, 1, 1, 2, 4, 2, 3, 2, 2, 2, 1),
     Seq(0, 0, 0, 0, 1, 3, 2, 1, 1, 1, 1, 3, 1),
     Seq(0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1)
-  )
+  ).map(_.map(BoardTile(_, None, None)))
 
-  type SparseMatrix[T] = Map[(Int, Int), T]
-
-  val board2: SparseMatrix[Tile] = Map(
+  val twoPlayerBoardSparse: SparseMatrix[BoardTile] = Map(
     (5, 6) -> 3,
     (9, 6) -> 2,
     (11, 10) -> 1,
@@ -114,6 +117,9 @@ object Board {
     (12, 6) -> 1,
     (11, 2) -> 1,
     (12, 5) -> 2
-  )
+  ).map {
+    case (pos, tile) =>
+      pos -> BoardTile(tile, None, None)
+  }
 
 }

@@ -22,16 +22,6 @@ object MainApp {
     val context =
       canvas.getContext("2d").asInstanceOf[dom.CanvasRenderingContext2D]
 
-    val sparseMatrix = twoPlayerBoard
-      .map(_.zipWithIndex)
-      .zipWithIndex
-      .flatMap {
-        case (row, y) =>
-          row.filter(_._1 != 0).map(t => (t._2, y) -> t._1)
-      }
-      .toMap
-    println(sparseMatrix)
-
     canvas.width = dom.window.innerWidth.toInt;
     canvas.height = dom.window.innerHeight.toInt;
 
@@ -62,13 +52,13 @@ object MainApp {
 
       boardDrawProps = BoardDrawProps(Rect(0, 0, dom.window.innerWidth, dom.window.innerHeight), cols, rows)
 
-      val hoveredHex = getHoveredHex(board, mouse, boardDrawProps)
+      val hoveredHex = getHoveredHex(mouse, boardDrawProps)
 
       context.clearRect(0, 0, canvas.width, canvas.height);
       drawBoard(board, boardDrawProps, hoveredHex, canvas, context)
 
       clickPosition
-        .map(mp => getHoveredHex(board, mp, boardDrawProps))
+        .map(mp => getHoveredHex(mp, boardDrawProps))
         .foreach(println)
       clickPosition = None
       dom.window.requestAnimationFrame(draw)
@@ -88,7 +78,7 @@ object MainApp {
     board.zipWithIndex.foreach {
       case (row, y) =>
         row.zipWithIndex.foreach {
-          case (tile, x) =>
+          case (boardTile, x) =>
             val centerX =
               if (y % 2 == 0) x * props.xStep + props.xStep
               else x * props.xStep + props.xStep / 2
@@ -99,13 +89,13 @@ object MainApp {
             val drawRadius =
               if (isHoveredHex) props.hexRadius * 0.8 else props.hexRadius
 
-            val color1 = tile match {
+            val color1 = boardTile.tile match {
               case Tile.Empty => Option.empty[String]
               case Tile.Sea   => Some("#8ea5ff")
               case _          => Some("#dbc478")
             }
 
-            val color2 = tile match {
+            val color2 = boardTile.tile match {
               case Tile.Village => Some("#c078db")
               case Tile.City    => Some("#d6405b")
               case Tile.Edo     => Some("#f4d435")
@@ -167,7 +157,6 @@ object MainApp {
   }
 
   def getHoveredHex(
-      board: Board,
       mouse: MousePosition,
       props: BoardDrawProps
   ): Option[(Int, Int)] = {
