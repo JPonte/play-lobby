@@ -6,27 +6,13 @@ import Board._
 
 object Board {
 
-  case class BoardTile(tile: Tile, figure: Option[Figure], token: Option[Token])
-
-  type BaseBoard = Seq[Seq[Tile]]
-  type Board = Seq[Seq[BoardTile]]
   type SparseMatrix[T] = Map[(Int, Int), T]
 
-  val twoPlayerBoard: BaseBoard = Seq(
-    Seq(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1),
-    Seq(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 3, 1),
-    Seq(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 2, 1),
-    Seq(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 4, 2, 3, 1),
-    Seq(0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 1),
-    Seq(0, 1, 1, 1, 1, 1, 1, 1, 2, 3, 2, 3, 2, 3, 1),
-    Seq(1, 2, 3, 2, 2, 3, 1, 3, 2, 2, 2, 2, 1, 1),
-    Seq(1, 3, 2, 2, 3, 2, 2, 2, 2, 2, 5, 2, 3, 1),
-    Seq(1, 1, 1, 1, 1, 2, 4, 2, 3, 2, 2, 2, 1),
-    Seq(0, 0, 0, 0, 1, 3, 2, 1, 1, 1, 1, 3, 1),
-    Seq(0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1)
-  )
-
-  val twoPlayerBoardSparse: SparseMatrix[BoardTile] = Map(
+  case class BoardTile(tile: Tile, figure: Option[Figure], token: Option[Token])
+  type BaseBoard = SparseMatrix[Tile]
+  type Board = SparseMatrix[BoardTile]
+  
+  val twoPlayerBoard: BaseBoard = Map(
     (5, 6) -> 3,
     (9, 6) -> 2,
     (11, 10) -> 1,
@@ -118,9 +104,5 @@ object Board {
     (12, 6) -> 1,
     (11, 2) -> 1,
     (12, 5) -> 2
-  ).map {
-    case (pos, tile) =>
-      pos -> BoardTile(tile, None, None)
-  }
-
+  )
 }

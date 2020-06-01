@@ -34,24 +34,25 @@ object MainApp {
     }
 
     //STUB
-    val board: Board = twoPlayerBoard.map(_.map { t =>
-      val inf = new Random().nextInt(3) + 1
-      val playerId = new Random().nextInt(2) + 1
-      val setTile = new Random().nextBoolean()
+    val board = twoPlayerBoard.map {
+      case (coords, t) =>
+        val inf = new Random().nextInt(3) + 1
+        val playerId = new Random().nextInt(2) + 1
+        val setTile = new Random().nextBoolean()
 
-      val token =
-        if (t == Tile.Land && setTile)
-          Some(Ronin(inf, playerId))
-        else if (t == Tile.Sea && setTile)
-          Some(Ship(inf, playerId))
-        else
-          None
-      BoardTile(t, None, token)
-    })
+        val token =
+          if (t == Tile.Land && setTile)
+            Some(Ronin(inf, playerId))
+          else if (t == Tile.Sea && setTile)
+            Some(Ship(inf, playerId))
+          else
+            None
 
-    
-    val cols = board.map(_.size).max
-    val rows = board.size
+        coords -> BoardTile(t, None, token)
+    }
+
+    val cols = board.keys.map(_._1).max
+    val rows = board.keys.map(_._2).max
     var mouse = MousePosition(0, 0)
     var clickPosition = Option(MousePosition(0, 0))
     var boardDrawProps = BoardDrawProps(
@@ -102,68 +103,64 @@ object MainApp {
       context: dom.CanvasRenderingContext2D
   ) {
 
-    board.zipWithIndex.foreach {
-      case (row, y) =>
-        row.zipWithIndex.foreach {
-          case (boardTile, x) =>
-            val centerX =
-              if (y % 2 == 0) x * props.xStep + props.xStep
-              else x * props.xStep + props.xStep / 2
-            val centerY = y * props.yStep + props.yStep
+    board.foreach {
+      case ((x, y), boardTile) =>
+        val centerX =
+          if (y % 2 == 0) x * props.xStep + props.xStep
+          else x * props.xStep + props.xStep / 2
+        val centerY = y * props.yStep + props.yStep
 
-            val isHoveredHex = hoveredHex.exists(hh => hh._1 == x && hh._2 == y)
+        val isHoveredHex = hoveredHex.exists(hh => hh._1 == x && hh._2 == y)
 
-            val drawRadius =
-              if (isHoveredHex) props.hexRadius * 0.8 else props.hexRadius
+        val drawRadius =
+          if (isHoveredHex) props.hexRadius * 0.8 else props.hexRadius
 
-            val color1 = boardTile.tile match {
-              case Tile.Empty => Option.empty[String]
-              case Tile.Sea   => Some("#8ea5ff")
-              case _          => Some("#dbc478")
-            }
-
-            val color2 = boardTile.tile match {
-              case Tile.Village => Some("#c078db")
-              case Tile.City    => Some("#d6405b")
-              case Tile.Edo     => Some("#f4d435")
-              case _            => Option.empty[String]
-
-            }
-
-            color1.foreach { c =>
-              if (isHoveredHex) {
-                drawHex(
-                  centerX,
-                  centerY,
-                  props.hexRadius,
-                  "#000000",
-                  context
-                )
-              }
-
-              drawHex(
-                centerX,
-                centerY,
-                drawRadius,
-                c,
-                context
-              )
-            }
-            color2.foreach(c =>
-              drawHex(
-                centerX,
-                centerY,
-                props.hexRadius * 0.5,
-                c,
-                context
-              )
-            )
-            boardTile.token.foreach(
-              drawToken(_, centerX, centerY, props.hexRadius, context)
-            )
+        val color1 = boardTile.tile match {
+          case Tile.Empty => Option.empty[String]
+          case Tile.Sea   => Some("#8ea5ff")
+          case _          => Some("#dbc478")
         }
-    }
 
+        val color2 = boardTile.tile match {
+          case Tile.Village => Some("#c078db")
+          case Tile.City    => Some("#d6405b")
+          case Tile.Edo     => Some("#f4d435")
+          case _            => Option.empty[String]
+
+        }
+
+        color1.foreach { c =>
+          if (isHoveredHex) {
+            drawHex(
+              centerX,
+              centerY,
+              props.hexRadius,
+              "#000000",
+              context
+            )
+          }
+
+          drawHex(
+            centerX,
+            centerY,
+            drawRadius,
+            c,
+            context
+          )
+        }
+        color2.foreach(c =>
+          drawHex(
+            centerX,
+            centerY,
+            props.hexRadius * 0.5,
+            c,
+            context
+          )
+        )
+        boardTile.token.foreach(
+          drawToken(_, centerX, centerY, props.hexRadius, context)
+        )
+    }
   }
 
   def drawHex(
