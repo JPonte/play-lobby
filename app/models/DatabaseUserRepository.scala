@@ -21,8 +21,12 @@ class DatabaseUserRepository(db: Database)(implicit val executionContext: Execut
   }
 
   def addUser(user: User): Future[Boolean] = {
-    val hashedPw = BCrypt.hashpw(user.password, BCrypt.gensalt())
-    db.run(Users.insertOrUpdate(UsersRow(user.username, hashedPw))).map(_ > 0)
+    getUser(user.username).flatMap {
+      case Some(_) => Future.successful(false)
+      case None =>
+        val hashedPw = BCrypt.hashpw(user.password, BCrypt.gensalt())
+        db.run(Users.insertOrUpdate(UsersRow(user.username, hashedPw))).map(_ > 0)
+    }
   }
 
 }
