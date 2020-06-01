@@ -4,14 +4,17 @@ import org.scalajs.dom
 import org.scalajs.dom.document
 import org.scalajs.dom.html
 import samurai.Board._
+import scala.util.Random
 
 object MainApp {
 
   case class MousePosition(x: Double, y: Double)
   case class Rect(x: Double, y: Double, width: Double, height: Double)
-  
+
   case class BoardDrawProps(drawRect: Rect, columns: Int, rows: Int) {
-    val hexRadius: Int = Math.min(drawRect.width / (columns * 2), drawRect.height / (rows * 2)).toInt
+    val hexRadius: Int = Math
+      .min(drawRect.width / (columns * 2), drawRect.height / (rows * 2))
+      .toInt
     val xStep = 2 * hexRadius * Math.cos(Math.PI / 6)
     val yStep = hexRadius + hexRadius * Math.sin(Math.PI / 6)
   }
@@ -30,12 +33,32 @@ object MainApp {
       canvas.height = dom.window.innerHeight.toInt;
     }
 
-    val board = twoPlayerBoard
+    //STUB
+    val board: Board = twoPlayerBoard.map(_.map { t =>
+      val inf = new Random().nextInt(3) + 1
+      val playerId = new Random().nextInt(2) + 1
+      val setTile = new Random().nextBoolean()
+
+      val token =
+        if (t == Tile.Land && setTile)
+          Some(Ronin(inf, playerId))
+        else if (t == Tile.Sea && setTile)
+          Some(Ship(inf, playerId))
+        else
+          None
+      BoardTile(t, None, token)
+    })
+
+    
     val cols = board.map(_.size).max
     val rows = board.size
     var mouse = MousePosition(0, 0)
     var clickPosition = Option(MousePosition(0, 0))
-    var boardDrawProps = BoardDrawProps(Rect(0, 0, dom.window.innerWidth, dom.window.innerHeight), cols, rows)
+    var boardDrawProps = BoardDrawProps(
+      Rect(0, 0, dom.window.innerWidth, dom.window.innerHeight),
+      cols,
+      rows
+    )
 
     dom.window.onmousemove = { event =>
       mouse = MousePosition(event.pageX, event.pageY)
@@ -50,7 +73,11 @@ object MainApp {
       var delta = time - prevTime
       prevTime = time
 
-      boardDrawProps = BoardDrawProps(Rect(0, 0, dom.window.innerWidth, dom.window.innerHeight), cols, rows)
+      boardDrawProps = BoardDrawProps(
+        Rect(0, 0, dom.window.innerWidth, dom.window.innerHeight),
+        cols,
+        rows
+      )
 
       val hoveredHex = getHoveredHex(mouse, boardDrawProps)
 
@@ -131,6 +158,9 @@ object MainApp {
                 context
               )
             )
+            boardTile.token.foreach(
+              drawToken(_, centerX, centerY, props.hexRadius, context)
+            )
         }
     }
 
@@ -154,6 +184,38 @@ object MainApp {
     }
     context.closePath()
     context.fill()
+  }
+
+  def drawToken(
+      token: Token,
+      centerX: Double,
+      centerY: Double,
+      r: Double,
+      context: dom.CanvasRenderingContext2D
+  ) {
+    val text = token match {
+      case FigureToken(Figure.Helmet, i, _)    => s"H $i"
+      case FigureToken(Figure.Buddha, i, _)    => s"B $i"
+      case FigureToken(Figure.RiceField, i, _) => s"R $i"
+      case SamuraiToken(i, _)                  => s"S $i"
+      case Ship(i, _)                          => s"Sh $i"
+      case ExchangeToken(i, _)                 => s"Ex $i"
+      case FigureExchange(_)                   => "Fe"
+      case Ronin(i, _)                         => s"Ro $i"
+    }
+    val color = token.playerId match {
+      case 1 => "#ff0000"
+      case 2 => "#00ff00"
+      case 3 => "#0000ff"
+      case 4 => "#cccc00"
+    }
+
+    drawHex(centerX, centerY, r * 0.8, "#f9f8e5", context)
+
+    context.fillStyle = color
+    context.font = s"${r / 2}px Arial"
+    val metrics = context.measureText(text)
+    context.fillText(text, centerX - metrics.width / 2, centerY + r / 4)
   }
 
   def getHoveredHex(
