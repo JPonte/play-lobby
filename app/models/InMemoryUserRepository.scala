@@ -4,10 +4,9 @@ import javax.inject.{Inject, Singleton}
 
 import scala.concurrent.{ExecutionContext, Future}
 
-//TODO use a db
-
+//For testing only
 @Singleton
-class UserRepository @Inject()(implicit val executionContext: ExecutionContext) {
+class InMemoryUserRepository @Inject()(implicit val executionContext: ExecutionContext) {
 
   private var users = Map("admin" -> "123", "ponte" -> "abc")
 

@@ -2,15 +2,20 @@ package controllers
 
 import actions._
 import javax.inject._
-import models.{User, UserRepository}
+import models.{DatabaseUserRepository, User}
+import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.mvc._
+import slick.jdbc.JdbcProfile
 
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class LoginController @Inject()(val controllerComponents: ControllerComponents,
                                 userAction: UserAction,
-                                userRepository: UserRepository)(implicit executionContext: ExecutionContext) extends BaseController {
+                                val dbConfigProvider: DatabaseConfigProvider)(implicit executionContext: ExecutionContext)
+  extends BaseController with HasDatabaseConfigProvider[JdbcProfile] {
+
+  val userRepository = new DatabaseUserRepository(db)
 
   def login(): Action[AnyContent] = userAction { implicit request: UserRequest[AnyContent] =>
     request.username.fold(Ok(views.html.login())) { _ =>
@@ -34,12 +39,9 @@ class LoginController @Inject()(val controllerComponents: ControllerComponents,
       username <- body.get("username").flatMap(_.headOption)
       password <- body.get("password").flatMap(_.headOption)
     } yield {
-      userRepository.getUser(username).map { user =>
-        if (user.exists(_.password == password)) {
-          Redirect(routes.LobbyController.index()).withSession(UserAction.USER_SESSION_COOKIE_ID -> username)
-        } else {
-          Redirect(routes.LoginController.login()).flashing("error" -> "Wrong username/password")
-        }
+      userRepository.validateUser(username, password).map {
+        case true => Redirect(routes.LobbyController.index()).withSession(UserAction.USER_SESSION_COOKIE_ID -> username)
+        case false => Redirect(routes.LoginController.login()).flashing("error" -> "Wrong username/password")
       }
     }).getOrElse(Future {
       Redirect(routes.LoginController.login()).flashing("error" -> "Invalid login")

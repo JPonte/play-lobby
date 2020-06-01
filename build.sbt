@@ -7,10 +7,13 @@ lazy val root = (project in file(".")).enablePlugins(PlayScala)
 
 scalaVersion := "2.13.2"
 
-//libraryDependencies += guice
 libraryDependencies ++= Seq(
   guice,
   "org.jsoup" % "jsoup" % "1.12.1",
+  "com.typesafe.play" %% "play-slick" % "5.0.0",
+  "org.postgresql" % "postgresql" % "42.2.12",
+  "org.mindrot" %"jbcrypt" % "0.4",
+  "com.typesafe.slick" %% "slick-codegen" % "3.3.2",
   "org.scalatestplus.play" %% "scalatestplus-play" % "5.0.0" % Test
 )
 
