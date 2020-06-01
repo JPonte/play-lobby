@@ -8,8 +8,13 @@ import samurai.Board._
 object MainApp {
 
   case class MousePosition(x: Double, y: Double)
-
-  case class BoardDrawProps(hexRadius: Double, xStep: Double, yStep: Double)
+  case class Rect(x: Double, y: Double, width: Double, height: Double)
+  
+  case class BoardDrawProps(drawRect: Rect, columns: Int, rows: Int) {
+    val hexRadius: Int = Math.min(drawRect.width / (columns * 2), drawRect.height / (rows * 2)).toInt
+    val xStep = 2 * hexRadius * Math.cos(Math.PI / 6)
+    val yStep = hexRadius + hexRadius * Math.sin(Math.PI / 6)
+  }
 
   def main(args: Array[String]): Unit = {
     val canvas =
@@ -36,9 +41,11 @@ object MainApp {
     }
 
     val board = twoPlayerBoard
+    val cols = board.map(_.size).max
+    val rows = board.size
     var mouse = MousePosition(0, 0)
     var clickPosition = Option(MousePosition(0, 0))
-    var boardDrawProps = BoardDrawProps(0, 0, 0)
+    var boardDrawProps = BoardDrawProps(Rect(0, 0, dom.window.innerWidth, dom.window.innerHeight), cols, rows)
 
     dom.window.onmousemove = { event =>
       mouse = MousePosition(event.pageX, event.pageY)
@@ -53,10 +60,7 @@ object MainApp {
       var delta = time - prevTime
       prevTime = time
 
-      val hexRadius = dom.window.innerWidth / (board.map(_.size).max * 2)
-      val xStep = 2 * hexRadius * Math.cos(Math.PI / 6)
-      val yStep = hexRadius + hexRadius * Math.sin(Math.PI / 6)
-      boardDrawProps = BoardDrawProps(hexRadius, xStep, yStep)
+      boardDrawProps = BoardDrawProps(Rect(0, 0, dom.window.innerWidth, dom.window.innerHeight), cols, rows)
 
       val hoveredHex = getHoveredHex(board, mouse, boardDrawProps)
 
