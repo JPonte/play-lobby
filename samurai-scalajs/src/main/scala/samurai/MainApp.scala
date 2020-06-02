@@ -115,11 +115,13 @@ object MainApp {
       PlayerTokenDrawProps(Rect(0, 0, 0, 0), maxPlayerTokens, 1)
 
     dom.window.onmousemove = { event =>
-      mouse = MousePosition(event.pageX, event.pageY)
+      val clientRect = canvas.getBoundingClientRect()
+      mouse = MousePosition(event.clientX - clientRect.left, event.clientY - clientRect.top)
     }
 
     dom.window.onmouseup = { event =>
-      clickPosition = Some(MousePosition(event.pageX, event.pageY))
+      val clientRect = canvas.getBoundingClientRect()
+      clickPosition = Some(MousePosition(event.clientX - clientRect.left, event.clientY - clientRect.top))
     }
 
     var prevTime: Double = 0;
