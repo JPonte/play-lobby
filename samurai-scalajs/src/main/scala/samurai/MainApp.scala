@@ -86,8 +86,6 @@ object MainApp {
     val cols = board.keys.map(_._1).max + 1
     val rows = board.keys.map(_._2).max + 1
 
-    println(s"$cols $rows")
-
     var mouse = MousePosition(0, 0)
     var clickPosition = Option(MousePosition(0, 0))
     var boardDrawProps = BoardDrawProps(
@@ -137,10 +135,18 @@ object MainApp {
       val hoveredHex = getHoveredHex(mouse, boardDrawProps)
       val hoveredToken = getHoveredPlayerToken(mouse, playerTokenDrawProps)
 
-      context.clearRect(0, 0, canvas.width, canvas.height);
+      context.clearRect(0, 0, canvas.width, canvas.height)
+      context.fillStyle = "#eee"
+      context.fillRect(0, 0, canvas.width, canvas.height)
       drawBoard(board, boardDrawProps, hoveredHex, canvas, context)
 
-      drawPlayerTokens(playerTokens, playerTokenDrawProps, hoveredToken, canvas, context)
+      drawPlayerTokens(
+        playerTokens,
+        playerTokenDrawProps,
+        hoveredToken,
+        canvas,
+        context
+      )
 
       clickPosition
         .map(mp => getHoveredHex(mp, boardDrawProps))
@@ -179,7 +185,8 @@ object MainApp {
         val centerY = y * props.yStep + props.offsetY + props.drawRect.y
 
         hoveredToken.foreach {
-          case (`i`, 0) => drawHex(centerX, centerY, props.hexRadius, "#000000", context)
+          case (`i`, 0) =>
+            drawHex(centerX, centerY, props.hexRadius, "#000000", None, context)
           case x => println(x)
         }
 
@@ -237,6 +244,7 @@ object MainApp {
               centerY,
               props.hexRadius,
               "#000000",
+              None,
               context
             )
           }
@@ -246,6 +254,7 @@ object MainApp {
             centerY,
             drawRadius,
             c,
+            None,
             context
           )
         }
@@ -255,6 +264,7 @@ object MainApp {
             centerY,
             props.hexRadius * 0.5,
             c,
+            None,
             context
           )
         )
@@ -269,9 +279,26 @@ object MainApp {
       centerY: Double,
       r: Double,
       colorCode: String,
+      accentColorCode: Option[String],
       context: dom.CanvasRenderingContext2D
   ) {
-    context.fillStyle = colorCode
+
+    accentColorCode match {
+      case Some(accent) =>
+        val gradient = context.createRadialGradient(
+          centerX,
+          centerY,
+          0.65 * r,
+          centerX,
+          centerY,
+          r * 1.5
+        )
+        gradient.addColorStop(0, colorCode)
+        gradient.addColorStop(1, accent)
+        context.fillStyle = gradient
+      case _ => context.fillStyle = colorCode
+    }
+
     context.beginPath()
     context.moveTo(centerX, centerY)
 
@@ -308,7 +335,7 @@ object MainApp {
       case 4 => "#cccc00"
     }
 
-    drawHex(centerX, centerY, r, "#f9f8e5", context)
+    drawHex(centerX, centerY, r, "#f9f8e5", Some(color), context)
 
     context.fillStyle = color
     context.font = s"${r / 2}px Arial"
@@ -331,8 +358,8 @@ object MainApp {
   }
 
   def getHoveredPlayerToken(
-    mouse: MousePosition,
-    props: PlayerTokenDrawProps
+      mouse: MousePosition,
+      props: PlayerTokenDrawProps
   ): Option[(Int, Int)] = {
 
     val row = (mouse.y - props.offsetY - props.drawRect.y) / props.yStep
