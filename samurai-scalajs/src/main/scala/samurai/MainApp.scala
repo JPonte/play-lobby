@@ -19,6 +19,14 @@ object MainApp {
     val yStep = hexRadius + hexRadius * Math.sin(Math.PI / 6)
   }
 
+  case class PlayerTokenDrawProps(drawRect: Rect, columns: Int, rows: Int) {
+    val hexRadius: Int = Math
+      .min(drawRect.width / (columns * 2), drawRect.height / (rows * 1.5))
+      .toInt
+      val xStep = 2 * hexRadius * Math.cos(Math.PI / 6)
+      val yStep = xStep
+  }
+
   def main(args: Array[String]): Unit = {
     val canvas =
       document.getElementById("main-canvas").asInstanceOf[html.Canvas]
@@ -50,6 +58,12 @@ object MainApp {
 
         coords -> BoardTile(t, None, token)
     }
+    val playerTokens = Seq(
+      SamuraiToken(1, 1),
+      SamuraiToken(1, 1),
+      SamuraiToken(2, 1),
+      SamuraiToken(3, 1)
+    )
 
     val cols = board.keys.map(_._1).max
     val rows = board.keys.map(_._2).max
@@ -75,7 +89,12 @@ object MainApp {
       prevTime = time
 
       boardDrawProps = BoardDrawProps(
-        Rect(dom.window.innerWidth * 0.1, 0, dom.window.innerWidth * 0.8, dom.window.innerWidth * 0.5),
+        Rect(
+          dom.window.innerWidth * 0.1,
+          0,
+          dom.window.innerWidth * 0.8,
+          dom.window.innerWidth * 0.5
+        ),
         cols,
         rows
       )
@@ -95,6 +114,16 @@ object MainApp {
     dom.window.requestAnimationFrame(draw)
   }
 
+  def drawPlayerTokens(
+      tokens: Seq[Token],
+      props: PlayerTokenDrawProps,
+      canvas: html.Canvas,
+      context: dom.CanvasRenderingContext2D
+  ) = {
+    tokens.zipWithIndex.foreach { case (token, i) =>
+    }
+  }
+
   def drawBoard(
       board: Board,
       props: BoardDrawProps,
@@ -106,7 +135,8 @@ object MainApp {
     board.foreach {
       case ((x, y), boardTile) =>
         val offsetX = if (y % 2 == 0) props.xStep / 2 else 0
-        val centerX = x * props.xStep + props.xStep / 2 + offsetX + props.drawRect.x
+        val centerX =
+          x * props.xStep + props.xStep / 2 + offsetX + props.drawRect.x
         val centerY = y * props.yStep + props.yStep + props.drawRect.y
 
         val isHoveredHex = hoveredHex.exists(hh => hh._1 == x && hh._2 == y)
