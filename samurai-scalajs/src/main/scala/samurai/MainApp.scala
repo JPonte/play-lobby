@@ -135,11 +135,12 @@ object MainApp {
       )
 
       val hoveredHex = getHoveredHex(mouse, boardDrawProps)
+      val hoveredToken = getHoveredPlayerToken(mouse, playerTokenDrawProps)
 
       context.clearRect(0, 0, canvas.width, canvas.height);
       drawBoard(board, boardDrawProps, hoveredHex, canvas, context)
 
-      drawPlayerTokens(playerTokens, playerTokenDrawProps, canvas, context)
+      drawPlayerTokens(playerTokens, playerTokenDrawProps, hoveredToken, canvas, context)
 
       clickPosition
         .map(mp => getHoveredHex(mp, boardDrawProps))
@@ -154,20 +155,21 @@ object MainApp {
   def drawPlayerTokens(
       tokens: Seq[Token],
       props: PlayerTokenDrawProps,
+      hoveredToken: Option[(Int, Int)],
       canvas: html.Canvas,
       context: dom.CanvasRenderingContext2D
   ) = {
 
-    context.beginPath()
-    context.fillStyle = "#cccc55"
-    context.fillRect(
-      props.drawRect.x,
-      props.drawRect.y,
-      props.drawRect.width,
-      props.drawRect.height
-    )
-    context.fill()
-    context.closePath()
+    // context.beginPath()
+    // context.fillStyle = "#cccc55"
+    // context.fillRect(
+    //   props.drawRect.x,
+    //   props.drawRect.y,
+    //   props.drawRect.width,
+    //   props.drawRect.height
+    // )
+    // context.fill()
+    // context.closePath()
 
     tokens.zipWithIndex.foreach {
       case (token, i) =>
@@ -176,7 +178,12 @@ object MainApp {
         val centerX = x * props.xStep + props.offsetX + props.drawRect.x
         val centerY = y * props.yStep + props.offsetY + props.drawRect.y
 
-        drawToken(token, centerX, centerY, props.hexRadius, context)
+        hoveredToken.foreach {
+          case (`i`, 0) => drawHex(centerX, centerY, props.hexRadius, "#000000", context)
+          case x => println(x)
+        }
+
+        drawToken(token, centerX, centerY, props.hexRadius * 0.8, context)
     }
   }
 
@@ -187,16 +194,16 @@ object MainApp {
       canvas: html.Canvas,
       context: dom.CanvasRenderingContext2D
   ) {
-    context.beginPath()
-    context.fillStyle = "#cccccc"
-    context.fillRect(
-      props.drawRect.x,
-      props.drawRect.y,
-      props.drawRect.width,
-      props.drawRect.height
-    )
-    context.fill()
-    context.closePath()
+    // context.beginPath()
+    // context.fillStyle = "#cccccc"
+    // context.fillRect(
+    //   props.drawRect.x,
+    //   props.drawRect.y,
+    //   props.drawRect.width,
+    //   props.drawRect.height
+    // )
+    // context.fill()
+    // context.closePath()
 
     board.foreach {
       case ((x, y), boardTile) =>
@@ -252,7 +259,7 @@ object MainApp {
           )
         )
         boardTile.token.foreach(
-          drawToken(_, centerX, centerY, props.hexRadius, context)
+          drawToken(_, centerX, centerY, props.hexRadius * 0.8, context)
         )
     }
   }
@@ -301,7 +308,7 @@ object MainApp {
       case 4 => "#cccc00"
     }
 
-    drawHex(centerX, centerY, r * 0.8, "#f9f8e5", context)
+    drawHex(centerX, centerY, r, "#f9f8e5", context)
 
     context.fillStyle = color
     context.font = s"${r / 2}px Arial"
@@ -319,6 +326,17 @@ object MainApp {
       if (Math.round(row) % 2 == 0)
         (mouse.x - props.xStep / 2 - props.offsetX - props.drawRect.x) / props.xStep
       else (mouse.x - props.offsetX - props.drawRect.x) / props.xStep
+
+    Some(Math.round(col).toInt, Math.round(row).toInt)
+  }
+
+  def getHoveredPlayerToken(
+    mouse: MousePosition,
+    props: PlayerTokenDrawProps
+  ): Option[(Int, Int)] = {
+
+    val row = (mouse.y - props.offsetY - props.drawRect.y) / props.yStep
+    val col = (mouse.x - props.offsetX - props.drawRect.x) / props.xStep
 
     Some(Math.round(col).toInt, Math.round(row).toInt)
   }
