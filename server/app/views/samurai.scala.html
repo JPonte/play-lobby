@@ -1,0 +1,9 @@
+@(webSocketUrl: String)(implicit flash: Flash)
+
+@main("Samurai") {
+<div>
+    <a href="@routes.LobbyController.index()">Back to lobby</a>
+</div>
+<canvas id="main-canvas"></canvas>
+@scalajs.html.scripts("samurai", routes.Assets.versioned(_).toString, name => getClass.getResource(s"/public/$name") != null)
+}

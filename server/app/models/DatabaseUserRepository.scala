@@ -5,12 +5,14 @@ import slick.jdbc.PostgresProfile.api._
 import scala.concurrent.{ExecutionContext, Future}
 import models.Tables._
 import org.mindrot.jbcrypt.BCrypt
+import scala.util.Try
 
 class DatabaseUserRepository(db: Database)(implicit val executionContext: ExecutionContext) {
 
   def validateUser(username: String, password: String): Future[Boolean] = {
     getUser(username).map{
-      case Some(user) => BCrypt.checkpw(password, user.password)
+      case Some(user) =>
+        Try(BCrypt.checkpw(password, user.password)).getOrElse(false)
       case _ => false
     }
   }

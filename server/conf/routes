@@ -10,6 +10,7 @@ GET     /register                   controllers.LoginController.register
 POST    /validateLogin              controllers.LoginController.validateLogin
 POST    /validateRegister           controllers.LoginController.validateRegister
 GET     /logout                     controllers.LoginController.logout
+GET     /samurai                    controllers.LobbyController.samurai
 
 GET     /socket                     controllers.LobbyController.socket
 

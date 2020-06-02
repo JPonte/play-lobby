@@ -43,4 +43,11 @@ class LobbyController @Inject()(val controllerComponents: ControllerComponents,
     })
   }
 
+  def samurai(): Action[AnyContent] = userAction { implicit request: UserRequest[AnyContent] =>
+    request.username.fold(Redirect(routes.LoginController.login())) { _ =>
+      val webSocketUrl = routes.LobbyController.socket().webSocketURL()
+      Ok(views.html.samurai(webSocketUrl))
+    }
+  }
+
 }
