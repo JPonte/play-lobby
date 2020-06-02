@@ -4,6 +4,7 @@ import org.scalajs.dom
 import org.scalajs.dom.document
 import org.scalajs.dom.html
 import samurai.Board._
+import samurai.Figure._
 import scala.util.Random
 
 object MainApp {
@@ -73,7 +74,23 @@ object MainApp {
         // else
         //   None
 
-        coords -> BoardTile(t, None, token)
+        val figures: Set[Figure] =
+          if (t == Tile.Village) {
+            Set(Figure.RiceField)
+          } else if (t == Tile.City) {
+            Set(Figure.RiceField, Figure.Helmet)
+          } else if (t == Tile.Edo)(
+            Set(
+              Figure.RiceField,
+              Figure.Helmet,
+              Figure.Buddha
+            )
+          )
+          else {
+            Set()
+          }
+
+        coords -> BoardTile(t, figures, token)
     }
     val playerTokens = Seq(
       SamuraiToken(1, 1),
@@ -268,6 +285,15 @@ object MainApp {
             context
           )
         )
+        if (boardTile.figures.nonEmpty)
+          drawFigures(
+            boardTile.figures,
+            centerX,
+            centerY,
+            props.hexRadius,
+            context
+          )
+
         boardTile.token.foreach(
           drawToken(_, centerX, centerY, props.hexRadius * 0.8, context)
         )
@@ -281,35 +307,16 @@ object MainApp {
       colorCode: String,
       accentColorCode: Option[String],
       context: dom.CanvasRenderingContext2D
-  ) {
-
-    accentColorCode match {
-      case Some(accent) =>
-        val gradient = context.createRadialGradient(
-          centerX,
-          centerY,
-          0.65 * r,
-          centerX,
-          centerY,
-          r * 1.5
-        )
-        gradient.addColorStop(0, colorCode)
-        gradient.addColorStop(1, accent)
-        context.fillStyle = gradient
-      case _ => context.fillStyle = colorCode
-    }
-
-    context.beginPath()
-    context.moveTo(centerX, centerY)
-
-    (0 to 6).foreach { a =>
-      val x = Math.cos(a * Math.PI / 3 + Math.PI / 6) * r
-      val y = Math.sin(a * Math.PI / 3 + Math.PI / 6) * r
-      context.lineTo(x + centerX, y + centerY)
-    }
-    context.closePath()
-    context.fill()
-  }
+  ): Unit =
+    drawPoly(
+      centerX,
+      centerY,
+      r,
+      6,
+      colorCode,
+      context,
+      accentColorCode = accentColorCode
+    )
 
   def drawToken(
       token: Token,
@@ -341,6 +348,120 @@ object MainApp {
     context.font = s"${r / 2}px Arial"
     val metrics = context.measureText(text)
     context.fillText(text, centerX - metrics.width / 2, centerY + r / 4)
+  }
+
+  def drawFigures(
+      figures: Set[Figure],
+      centerX: Double,
+      centerY: Double,
+      hexRadius: Double,
+      context: dom.CanvasRenderingContext2D
+  ): Unit = {
+    val figCount = figures.size
+    val figSize = hexRadius * 0.3
+
+    figures.zipWithIndex.foreach {
+      case (figure, index) =>
+        val (offsetX: Double, offsetY: Double) = figCount match {
+          case 3 =>
+            val x = Math.cos(2 * index * Math.PI / 3 + Math.PI / 6) * figSize * 1.25
+            val y = Math.sin(2 * index * Math.PI / 3 + Math.PI / 6) * figSize * 1.25
+            (x, y)
+          case 2 =>
+            (index * 2 * figSize - figSize, 0.0)
+          case _ =>
+            (0.0, 0.0)
+        }
+        figure match {
+          case Figure.Buddha =>
+            drawBuddha(
+              centerX + offsetX,
+              centerY + offsetY,
+              figSize,
+              "#000",
+              context
+            )
+          case Figure.Helmet =>
+            drawCastle(
+              centerX + offsetX,
+              centerY + offsetY,
+              figSize,
+              "#000",
+              context
+            )
+          case Figure.RiceField =>
+            drawRiceField(
+              centerX + offsetX,
+              centerY + offsetY,
+              figSize,
+              "#000",
+              context
+            )
+        }
+    }
+  }
+
+  def drawRiceField(
+      centerX: Double,
+      centerY: Double,
+      r: Double,
+      colorCode: String,
+      context: dom.CanvasRenderingContext2D
+  ): Unit = drawPoly(centerX, centerY, r, 4, colorCode, context, rotation = Math.PI / 4)
+
+  def drawBuddha(
+      centerX: Double,
+      centerY: Double,
+      r: Double,
+      colorCode: String,
+      context: dom.CanvasRenderingContext2D
+  ): Unit = drawPoly(centerX, centerY, r, 5, colorCode, context, rotation = 7 * Math.PI / 10)
+
+  def drawCastle(
+      centerX: Double,
+      centerY: Double,
+      r: Double,
+      colorCode: String,
+      context: dom.CanvasRenderingContext2D
+  ): Unit = drawPoly(centerX, centerY, r, 3, colorCode, context)
+
+  def drawPoly(
+      centerX: Double,
+      centerY: Double,
+      r: Double,
+      sides: Int,
+      colorCode: String,
+      context: dom.CanvasRenderingContext2D,
+      rotation: Double = Math.PI / 6.0,
+      accentColorCode: Option[String] = None
+  ): Unit = {
+
+    accentColorCode match {
+      case Some(accent) =>
+        val gradient = context.createRadialGradient(
+          centerX,
+          centerY,
+          0.65 * r,
+          centerX,
+          centerY,
+          r * 1.5
+        )
+        gradient.addColorStop(0, colorCode)
+        gradient.addColorStop(1, accent)
+        context.fillStyle = gradient
+      case _ => context.fillStyle = colorCode
+    }
+
+    context.beginPath()
+    context.moveTo(centerX, centerY)
+
+    (0 to sides).foreach { a =>
+      val x = Math.cos(2 * a * Math.PI / sides + rotation) * r
+      val y = Math.sin(2 * a * Math.PI / sides + rotation) * r
+      context.lineTo(x + centerX, y + centerY)
+    }
+    context.closePath()
+    context.fill()
   }
 
   def getHoveredHex(

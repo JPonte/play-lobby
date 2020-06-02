@@ -8,10 +8,10 @@ object Board {
 
   type SparseMatrix[T] = Map[(Int, Int), T]
 
-  case class BoardTile(tile: Tile, figure: Option[Figure], token: Option[Token])
+  case class BoardTile(tile: Tile, figures: Set[Figure], token: Option[Token])
   type BaseBoard = SparseMatrix[Tile]
   type Board = SparseMatrix[BoardTile]
-  
+
   val twoPlayerBoard: BaseBoard = Map(
     (5, 6) -> 3,
     (9, 6) -> 2,
