@@ -11,20 +11,37 @@ object MainApp {
   case class MousePosition(x: Double, y: Double)
   case class Rect(x: Double, y: Double, width: Double, height: Double)
 
+  val pi6cos: Double = Math.cos(Math.PI / 6)
+  val pi6sin: Double = 0.5
+
   case class BoardDrawProps(drawRect: Rect, columns: Int, rows: Int) {
-    val hexRadius: Int = Math
-      .min(drawRect.width / (columns * 2), drawRect.height / (rows * 1.5))
-      .toInt
-    val xStep = 2 * hexRadius * Math.cos(Math.PI / 6)
-    val yStep = hexRadius + hexRadius * Math.sin(Math.PI / 6)
+    val hexRadius: Double = Math
+      .min(
+        drawRect.width / (pi6cos * (2 * columns + 1)),
+        drawRect.height / (1.5 * rows + 0.5)
+      )
+
+    val xStep = 2 * hexRadius * pi6cos
+    val yStep = hexRadius + hexRadius * pi6sin
+
+    val offsetX =
+      xStep / 2 + (drawRect.width - hexRadius * pi6cos * (2 * columns + 1)) / 2
+    val offsetY =
+      hexRadius + (drawRect.height - hexRadius * (1.5 * rows + 0.5)) / 2
   }
 
   case class PlayerTokenDrawProps(drawRect: Rect, columns: Int, rows: Int) {
-    val hexRadius: Int = Math
-      .min(drawRect.width / (columns * 2), drawRect.height / (rows * 1.5))
-      .toInt
-      val xStep = 2 * hexRadius * Math.cos(Math.PI / 6)
-      val yStep = xStep
+    val hexRadius: Double = Math
+      .min(
+        drawRect.width / (columns * 2),
+        drawRect.height / (rows * 2)
+      )
+
+    val xStep = 2 * hexRadius
+    val yStep = 2 * hexRadius
+
+    val offsetX = (drawRect.width - (columns * xStep)) / 2 + xStep / 2
+    val offsetY = (drawRect.height - (rows * yStep)) / 2 + yStep / 2
   }
 
   def main(args: Array[String]): Unit = {
@@ -48,13 +65,13 @@ object MainApp {
         val playerId = new Random().nextInt(2) + 1
         val setTile = new Random().nextBoolean()
 
-        val token =
-          if (t == Tile.Land && setTile)
-            Some(Ronin(inf, playerId))
-          else if (t == Tile.Sea && setTile)
-            Some(Ship(inf, playerId))
-          else
-            None
+        val token = None
+        // if (t == Tile.Land && setTile)
+        //   Some(Ronin(inf, playerId))
+        // else if (t == Tile.Sea && setTile)
+        //   Some(Ship(inf, playerId))
+        // else
+        //   None
 
         coords -> BoardTile(t, None, token)
     }
@@ -62,11 +79,15 @@ object MainApp {
       SamuraiToken(1, 1),
       SamuraiToken(1, 1),
       SamuraiToken(2, 1),
-      SamuraiToken(3, 1)
+      SamuraiToken(3, 1),
+      FigureToken(Figure.RiceField, 3, 1)
     )
 
-    val cols = board.keys.map(_._1).max
-    val rows = board.keys.map(_._2).max
+    val cols = board.keys.map(_._1).max + 1
+    val rows = board.keys.map(_._2).max + 1
+
+    println(s"$cols $rows")
+
     var mouse = MousePosition(0, 0)
     var clickPosition = Option(MousePosition(0, 0))
     var boardDrawProps = BoardDrawProps(
@@ -74,6 +95,9 @@ object MainApp {
       cols,
       rows
     )
+    val maxPlayerTokens = 5
+    var playerTokenDrawProps =
+      PlayerTokenDrawProps(Rect(0, 0, 0, 0), maxPlayerTokens, 1)
 
     dom.window.onmousemove = { event =>
       mouse = MousePosition(event.pageX, event.pageY)
@@ -90,19 +114,32 @@ object MainApp {
 
       boardDrawProps = BoardDrawProps(
         Rect(
-          dom.window.innerWidth * 0.1,
           0,
-          dom.window.innerWidth * 0.8,
-          dom.window.innerWidth * 0.5
+          dom.window.innerHeight * 0.1,
+          dom.window.innerWidth,
+          dom.window.innerHeight * 0.5
         ),
         cols,
         rows
+      )
+
+      playerTokenDrawProps = PlayerTokenDrawProps(
+        Rect(
+          dom.window.innerWidth * 0.2,
+          dom.window.innerHeight * 0.61,
+          dom.window.innerWidth * 0.6,
+          dom.window.innerHeight * 0.1
+        ),
+        maxPlayerTokens,
+        1
       )
 
       val hoveredHex = getHoveredHex(mouse, boardDrawProps)
 
       context.clearRect(0, 0, canvas.width, canvas.height);
       drawBoard(board, boardDrawProps, hoveredHex, canvas, context)
+
+      drawPlayerTokens(playerTokens, playerTokenDrawProps, canvas, context)
 
       clickPosition
         .map(mp => getHoveredHex(mp, boardDrawProps))
@@ -120,7 +157,26 @@ object MainApp {
       canvas: html.Canvas,
       context: dom.CanvasRenderingContext2D
   ) = {
-    tokens.zipWithIndex.foreach { case (token, i) =>
+
+    context.beginPath()
+    context.fillStyle = "#cccc55"
+    context.fillRect(
+      props.drawRect.x,
+      props.drawRect.y,
+      props.drawRect.width,
+      props.drawRect.height
+    )
+    context.fill()
+    context.closePath()
+
+    tokens.zipWithIndex.foreach {
+      case (token, i) =>
+        val x = i % props.columns
+        val y = (i / props.columns).toInt
+        val centerX = x * props.xStep + props.offsetX + props.drawRect.x
+        val centerY = y * props.yStep + props.offsetY + props.drawRect.y
+
+        drawToken(token, centerX, centerY, props.hexRadius, context)
     }
   }
 
@@ -131,13 +187,23 @@ object MainApp {
       canvas: html.Canvas,
       context: dom.CanvasRenderingContext2D
   ) {
+    context.beginPath()
+    context.fillStyle = "#cccccc"
+    context.fillRect(
+      props.drawRect.x,
+      props.drawRect.y,
+      props.drawRect.width,
+      props.drawRect.height
+    )
+    context.fill()
+    context.closePath()
 
     board.foreach {
       case ((x, y), boardTile) =>
         val offsetX = if (y % 2 == 0) props.xStep / 2 else 0
         val centerX =
-          x * props.xStep + props.xStep / 2 + offsetX + props.drawRect.x
-        val centerY = y * props.yStep + props.yStep + props.drawRect.y
+          x * props.xStep + props.offsetX + offsetX + props.drawRect.x
+        val centerY = y * props.yStep + props.offsetY + props.drawRect.y
 
         val isHoveredHex = hoveredHex.exists(hh => hh._1 == x && hh._2 == y)
 
@@ -155,7 +221,6 @@ object MainApp {
           case Tile.City    => Some("#d6405b")
           case Tile.Edo     => Some("#f4d435")
           case _            => Option.empty[String]
-
         }
 
         color1.foreach { c =>
@@ -249,11 +314,11 @@ object MainApp {
       props: BoardDrawProps
   ): Option[(Int, Int)] = {
 
-    val row = (mouse.y - props.yStep - props.drawRect.y) / props.yStep
+    val row = (mouse.y - props.offsetY - props.drawRect.y) / props.yStep
     val col =
       if (Math.round(row) % 2 == 0)
-        (mouse.x - props.xStep - props.drawRect.x) / props.xStep
-      else (mouse.x - props.xStep / 2 - props.drawRect.x) / props.xStep
+        (mouse.x - props.xStep / 2 - props.offsetX - props.drawRect.x) / props.xStep
+      else (mouse.x - props.offsetX - props.drawRect.x) / props.xStep
 
     Some(Math.round(col).toInt, Math.round(row).toInt)
   }
