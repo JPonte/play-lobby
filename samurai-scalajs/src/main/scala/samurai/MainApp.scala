@@ -4,13 +4,19 @@ import org.scalajs.dom
 import org.scalajs.dom.document
 import org.scalajs.dom.html
 import samurai.Board._
+import samurai.BoardTile
 import samurai.Figure._
+import utils.MatrixPosition
+
 import scala.util.Random
 
 object MainApp {
 
-  case class MousePosition(x: Double, y: Double)
-  case class Rect(x: Double, y: Double, width: Double, height: Double)
+  case class CanvasPosition(x: Double, y: Double)
+  case class Rect(x: Double, y: Double, width: Double, height: Double) {
+    def isInside(position: CanvasPosition): Boolean =
+      position.x >= x && position.y >= y && position.x <=  x +width && position.y <= y + height
+  }
 
   val pi6cos: Double = Math.cos(Math.PI / 6)
   val pi6sin: Double = 0.5
@@ -100,11 +106,11 @@ object MainApp {
       FigureToken(Figure.RiceField, 3, 1)
     )
 
-    val cols = board.keys.map(_._1).max + 1
-    val rows = board.keys.map(_._2).max + 1
+    val cols = board.keys.map(_.column).max + 1
+    val rows = board.keys.map(_.row).max + 1
 
-    var mouse = MousePosition(0, 0)
-    var clickPosition = Option(MousePosition(0, 0))
+    var mouse = CanvasPosition(0, 0)
+    var clickPosition = Option(CanvasPosition(0, 0))
     var boardDrawProps = BoardDrawProps(
       Rect(0, 0, dom.window.innerWidth, dom.window.innerHeight),
       cols,
@@ -116,12 +122,12 @@ object MainApp {
 
     dom.window.onmousemove = { event =>
       val clientRect = canvas.getBoundingClientRect()
-      mouse = MousePosition(event.clientX - clientRect.left, event.clientY - clientRect.top)
+      mouse = CanvasPosition(event.clientX - clientRect.left, event.clientY - clientRect.top)
     }
 
     dom.window.onmouseup = { event =>
       val clientRect = canvas.getBoundingClientRect()
-      clickPosition = Some(MousePosition(event.clientX - clientRect.left, event.clientY - clientRect.top))
+      clickPosition = Some(CanvasPosition(event.clientX - clientRect.left, event.clientY - clientRect.top))
     }
 
     var prevTime: Double = 0;
@@ -157,13 +163,12 @@ object MainApp {
       context.clearRect(0, 0, canvas.width, canvas.height)
       context.fillStyle = "#eee"
       context.fillRect(0, 0, canvas.width, canvas.height)
-      drawBoard(board, boardDrawProps, hoveredHex, canvas, context)
+      drawBoard(board, boardDrawProps, hoveredHex, context)
 
       drawPlayerTokens(
         playerTokens,
         playerTokenDrawProps,
         hoveredToken,
-        canvas,
         context
       )
 
@@ -180,8 +185,7 @@ object MainApp {
   def drawPlayerTokens(
       tokens: Seq[Token],
       props: PlayerTokenDrawProps,
-      hoveredToken: Option[(Int, Int)],
-      canvas: html.Canvas,
+      hoveredToken: Option[CanvasPosition],
       context: dom.CanvasRenderingContext2D
   ) = {
 
@@ -204,9 +208,9 @@ object MainApp {
         val centerY = y * props.yStep + props.offsetY + props.drawRect.y
 
         hoveredToken.foreach {
-          case (`i`, 0) =>
+          case CanvasPosition(`i`, 0) =>
             drawHex(centerX, centerY, props.hexRadius, "#000000", None, context)
-          case x => println(x)
+          case _ =>
         }
 
         drawToken(token, centerX, centerY, props.hexRadius * 0.8, context)
@@ -216,8 +220,7 @@ object MainApp {
   def drawBoard(
       board: Board,
       props: BoardDrawProps,
-      hoveredHex: Option[(Int, Int)],
-      canvas: html.Canvas,
+      hoveredHex: Option[CanvasPosition],
       context: dom.CanvasRenderingContext2D
   ) {
     // context.beginPath()
@@ -232,13 +235,13 @@ object MainApp {
     // context.closePath()
 
     board.foreach {
-      case ((x, y), boardTile) =>
+      case (MatrixPosition(x, y), boardTile) =>
         val offsetX = if (y % 2 == 0) props.xStep / 2 else 0
         val centerX =
           x * props.xStep + props.offsetX + offsetX + props.drawRect.x
         val centerY = y * props.yStep + props.offsetY + props.drawRect.y
 
-        val isHoveredHex = hoveredHex.exists(hh => hh._1 == x && hh._2 == y)
+        val isHoveredHex = hoveredHex.exists(hh => hh.x == x && hh.y == y)
 
         val drawRadius =
           if (isHoveredHex) props.hexRadius * 0.8 else props.hexRadius
@@ -467,9 +470,9 @@ object MainApp {
   }
 
   def getHoveredHex(
-      mouse: MousePosition,
-      props: BoardDrawProps
-  ): Option[(Int, Int)] = {
+                     mouse: CanvasPosition,
+                     props: BoardDrawProps
+  ): Option[CanvasPosition] = {
 
     val row = (mouse.y - props.offsetY - props.drawRect.y) / props.yStep
     val col =
@@ -477,25 +480,23 @@ object MainApp {
         (mouse.x - props.xStep / 2 - props.offsetX - props.drawRect.x) / props.xStep
       else (mouse.x - props.offsetX - props.drawRect.x) / props.xStep
 
-    Some(Math.round(col).toInt, Math.round(row).toInt)
+    if (props.drawRect.isInside(mouse))
+      Some(CanvasPosition(Math.round(col).toInt, Math.round(row).toInt))
+    else
+      None
   }
 
   def getHoveredPlayerToken(
-      mouse: MousePosition,
-      props: PlayerTokenDrawProps
-  ): Option[(Int, Int)] = {
+                             mouse: CanvasPosition,
+                             props: PlayerTokenDrawProps
+  ): Option[CanvasPosition] = {
 
     val row = (mouse.y - props.offsetY - props.drawRect.y) / props.yStep
     val col = (mouse.x - props.offsetX - props.drawRect.x) / props.xStep
 
-    Some(Math.round(col).toInt, Math.round(row).toInt)
-  }
-
-  def squredDist(x1: Double, y1: Double, x2: Double, y2: Double) = {
-    Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2)
-  }
-
-  def dist(x1: Double, y1: Double, x2: Double, y2: Double) = {
-    Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2))
+    if (props.drawRect.isInside(mouse))
+      Some(CanvasPosition(Math.round(col).toInt, Math.round(row).toInt))
+    else
+      None
   }
 }

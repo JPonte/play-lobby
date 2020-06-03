@@ -1,6 +1,6 @@
 package samurai
 
-import Figure._
+import samurai.Figure._
 
 trait Token {
     def playerId: Int

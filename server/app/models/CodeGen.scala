@@ -5,7 +5,7 @@ object CodeGen extends App{
     "slick.jdbc.PostgresProfile",
     "org.postgresql.Driver",
     "jdbc:postgresql://localhost:5432/lobby?user=ponte&password=123",
-    "./app",
+    "./server/app",
     "models",
     None,
     None,

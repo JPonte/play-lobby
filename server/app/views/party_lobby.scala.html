@@ -1,30 +1,7 @@
 @(webSocketUrl: String, username: String, players: Seq[String])(implicit flash: Flash)
 
 @main("Lobby") {
-<div class="modal">
-    <div class="modal-content">
-        <span class="close-btn">&times;</span>
-        <h2>Create</h2>
-        <h4>Player count: </h4>
-        <select name="player-count-selector" id="player-count-selector">
-            <option value="2-players">2</option>
-            <option value="3-players">3</option>
-            <option value="4-players">4</option>
-        </select>
-        <h4>Extras:</h4>
-        <div>
-            <label>Auto-assign figures:</label>
-            <input type="checkbox">
-        </div>
-        <div>
-            <h4>Password:</h4>
-            <input type="text">
-        </div>
-
-        <a href="@routes.LobbyController.samurai()">Create Game</a>
-    </div>
-</div>
-<h1>Hi @username</h1>
+<h1>Samurai</h1>
 <div id="actions-header">
     <button id="create-game-button">Create Game</button>
     <a href="@routes.LoginController.logout()">Logout</a>
@@ -46,13 +23,5 @@
         <input type="text" id="lobby-message-input">
     </div>
 </div>
-<div id="games-container">
-    <label>Games</label>
-    <nav>
-        <ul id="lobby-game-list">
-        </ul>
-    </nav>
-</div>
-
 <script src='@routes.Assets.versioned("javascripts/main.js")' type='text/javascript' data-url='@webSocketUrl'></script>
 }
