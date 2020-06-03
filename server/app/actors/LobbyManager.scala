@@ -2,8 +2,8 @@ package actors
 
 import actors.LobbyManager._
 import akka.actor.{Actor, ActorRef}
-import models.{LobbyCommand, PrivateCommand, SystemLobbyMessage, UpdatedUsersList, Username, WebSocketCommand}
 import akka.pattern.pipe
+import core.{LobbyCommand, PrivateCommand, SystemLobbyMessage, UpdatedUsersList, Username, WebSocketCommand}
 
 import scala.concurrent.{ExecutionContext, Future}
 

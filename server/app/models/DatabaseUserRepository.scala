@@ -1,5 +1,6 @@
 package models
 
+import core.User
 import slick.jdbc.PostgresProfile.api._
 
 import scala.concurrent.{ExecutionContext, Future}

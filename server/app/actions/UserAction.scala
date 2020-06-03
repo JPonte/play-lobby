@@ -1,9 +1,9 @@
 package actions
 
 import javax.inject._
-import models.Username
 import play.api.mvc.{ActionBuilder, AnyContent, BodyParser, PlayBodyParsers, Request, RequestHeader, Result, WrappedRequest}
 import UserAction._
+import core.Username
 
 import scala.concurrent.{ExecutionContext, Future}
 

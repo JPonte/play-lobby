@@ -2,9 +2,9 @@ package actors
 
 import actors.LobbyActor.SendCommand
 import akka.actor.{Actor, ActorRef, Props}
+import core.{LobbyMessage, Username, WebSocketCommand}
 import io.circe.generic.auto._
 import io.circe.syntax._
-import models.{LobbyMessage, Username, WebSocketCommand}
 
 class LobbyActor(username: Username, out: ActorRef, manager: ActorRef) extends Actor {
 

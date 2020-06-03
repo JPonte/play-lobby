@@ -54,5 +54,6 @@
     </nav>
 </div>
 
-<script src='@routes.Assets.versioned("javascripts/main.js")' type='text/javascript' data-url='@webSocketUrl'></script>
+<input type="hidden" id="data-url" value="@webSocketUrl">
+@scalajs.html.scripts("lobby-client", routes.Assets.versioned(_).toString, name => getClass.getResource(s"/public/$name") != null)
 }

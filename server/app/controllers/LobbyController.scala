@@ -10,7 +10,7 @@ import play.api.mvc.{Action, AnyContent, BaseController, ControllerComponents, W
 import scala.concurrent.{ExecutionContext, Future}
 import akka.pattern.ask
 import akka.util.Timeout
-import models.Username
+import core.Username
 
 import scala.concurrent.duration._
 

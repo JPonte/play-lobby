@@ -1,8 +1,9 @@
 package controllers
 
 import actions._
+import core.User
 import javax.inject._
-import models.{DatabaseUserRepository, User}
+import models.DatabaseUserRepository
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.mvc._
 import slick.jdbc.JdbcProfile
