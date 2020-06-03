@@ -14,8 +14,7 @@ create table game.game_info
 			primary key,
 	player_count int not null,
 	password varchar(32),
-	started boolean default false not null,
-	finished boolean default false not null
+	status integer default 0 not null
 );
 
 alter table game.game_info owner to ponte;

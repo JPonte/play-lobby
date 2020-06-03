@@ -22,19 +22,18 @@ trait Tables {
    *  @param id Database column id SqlType(serial), AutoInc, PrimaryKey
    *  @param playerCount Database column player_count SqlType(int4)
    *  @param password Database column password SqlType(varchar), Length(32,true), Default(None)
-   *  @param started Database column started SqlType(bool), Default(false)
-   *  @param finished Database column finished SqlType(bool), Default(false) */
-  case class GameInfoRow(id: Int, playerCount: Int, password: Option[String] = None, started: Boolean = false, finished: Boolean = false)
+   *  @param status Database column status SqlType(int4), Default(0) */
+  case class GameInfoRow(id: Int, playerCount: Int, password: Option[String] = None, status: Int = 0)
   /** GetResult implicit for fetching GameInfoRow objects using plain SQL queries */
-  implicit def GetResultGameInfoRow(implicit e0: GR[Int], e1: GR[Option[String]], e2: GR[Boolean]): GR[GameInfoRow] = GR{
+  implicit def GetResultGameInfoRow(implicit e0: GR[Int], e1: GR[Option[String]]): GR[GameInfoRow] = GR{
     prs => import prs._
-    GameInfoRow.tupled((<<[Int], <<[Int], <<?[String], <<[Boolean], <<[Boolean]))
+    GameInfoRow.tupled((<<[Int], <<[Int], <<?[String], <<[Int]))
   }
   /** Table description of table game_info. Objects of this class serve as prototypes for rows in queries. */
   class GameInfo(_tableTag: Tag) extends profile.api.Table[GameInfoRow](_tableTag, Some("game"), "game_info") {
-    def * = (id, playerCount, password, started, finished) <> (GameInfoRow.tupled, GameInfoRow.unapply)
+    def * = (id, playerCount, password, status) <> (GameInfoRow.tupled, GameInfoRow.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
-    def ? = ((Rep.Some(id), Rep.Some(playerCount), password, Rep.Some(started), Rep.Some(finished))).shaped.<>({r=>import r._; _1.map(_=> GameInfoRow.tupled((_1.get, _2.get, _3, _4.get, _5.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
+    def ? = ((Rep.Some(id), Rep.Some(playerCount), password, Rep.Some(status))).shaped.<>({r=>import r._; _1.map(_=> GameInfoRow.tupled((_1.get, _2.get, _3, _4.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
     /** Database column id SqlType(serial), AutoInc, PrimaryKey */
     val id: Rep[Int] = column[Int]("id", O.AutoInc, O.PrimaryKey)
@@ -42,10 +41,8 @@ trait Tables {
     val playerCount: Rep[Int] = column[Int]("player_count")
     /** Database column password SqlType(varchar), Length(32,true), Default(None) */
     val password: Rep[Option[String]] = column[Option[String]]("password", O.Length(32,varying=true), O.Default(None))
-    /** Database column started SqlType(bool), Default(false) */
-    val started: Rep[Boolean] = column[Boolean]("started", O.Default(false))
-    /** Database column finished SqlType(bool), Default(false) */
-    val finished: Rep[Boolean] = column[Boolean]("finished", O.Default(false))
+    /** Database column status SqlType(int4), Default(0) */
+    val status: Rep[Int] = column[Int]("status", O.Default(0))
   }
   /** Collection-like TableQuery object for table GameInfo */
   lazy val GameInfo = new TableQuery(tag => new GameInfo(tag))
@@ -73,8 +70,6 @@ trait Tables {
     /** Primary key of GamePlayers (database name game_players_pk) */
     val pk = primaryKey("game_players_pk", (gameId, username))
 
-    /** Foreign key referencing GameInfo (database name game_players_game_info_id_fk) */
-    lazy val gameInfoFk = foreignKey("game_players_game_info_id_fk", gameId, GameInfo)(r => r.id, onUpdate=ForeignKeyAction.NoAction, onDelete=ForeignKeyAction.Cascade)
     /** Foreign key referencing Users (database name game_players_users_username_fk) */
     lazy val usersFk = foreignKey("game_players_users_username_fk", username, Users)(r => r.username, onUpdate=ForeignKeyAction.NoAction, onDelete=ForeignKeyAction.SetNull)
   }
@@ -83,7 +78,7 @@ trait Tables {
 
   /** Entity class storing rows of table Users
    *  @param username Database column username SqlType(varchar), PrimaryKey, Length(20,true)
-   *  @param password Database column password SqlType(varchar), Length(255,true) */
+   *  @param password Database column password SqlType(varchar), Length(300,true) */
   case class UsersRow(username: String, password: String)
   /** GetResult implicit for fetching UsersRow objects using plain SQL queries */
   implicit def GetResultUsersRow(implicit e0: GR[String]): GR[UsersRow] = GR{
@@ -98,8 +93,8 @@ trait Tables {
 
     /** Database column username SqlType(varchar), PrimaryKey, Length(20,true) */
     val username: Rep[String] = column[String]("username", O.PrimaryKey, O.Length(20,varying=true))
-    /** Database column password SqlType(varchar), Length(255,true) */
-    val password: Rep[String] = column[String]("password", O.Length(255,varying=true))
+    /** Database column password SqlType(varchar), Length(300,true) */
+    val password: Rep[String] = column[String]("password", O.Length(300,varying=true))
   }
   /** Collection-like TableQuery object for table Users */
   lazy val Users = new TableQuery(tag => new Users(tag))

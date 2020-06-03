@@ -4,3 +4,4 @@ create database lobby with owner=ponte;
 
 CREATE SCHEMA auth;
 
+CREATE SCHEMA game;
