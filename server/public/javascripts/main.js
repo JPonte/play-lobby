@@ -6,8 +6,8 @@ const socket = new WebSocket(url);
 
 
 const inputField = document.getElementById('lobby-message-input');
-const chatTextArea = document.getElementById('lobby-chat-textarea');
 const userList = document.getElementById('lobby-user-list')
+const chatArea = document.getElementById('chat-area'); 
 
 inputField.onkeydown = (event) => {
     if (event.key === 'Enter') {
@@ -20,15 +20,17 @@ socket.onmessage = (event) => {
     const jsonData = JSON.parse(event.data)
     console.log(jsonData)
     if ("SystemLobbyMessage" in jsonData) {
-        chatTextArea.value += "\n" + jsonData["SystemLobbyMessage"]["content"];
+        const div = document.createElement("div");
+        div.innerHTML = "<b>" + jsonData["SystemLobbyMessage"]["content"]+ "</b>";
+        chatArea.prepend(div);
     } else if ("LobbyMessage" in jsonData) {
-            chatTextArea.value += "\n" + jsonData["LobbyMessage"]["sender"]["value"] + ": " + jsonData["LobbyMessage"]["content"];
+            const div = document.createElement("div");
+            div.innerHTML = "<b>" + jsonData["LobbyMessage"]["sender"]["value"] + ":</b> " + jsonData["LobbyMessage"]["content"];
+            chatArea.prepend(div)
     } else if ("UpdatedUsersList" in jsonData) {
         userList.innerHTML = ''
         jsonData["UpdatedUsersList"]["userList"].forEach(function (user, index) {
-
             userList.innerHTML += '<li>'+user+'</li>'
-            console.log(user)
         })
     }
 }

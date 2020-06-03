@@ -35,14 +35,14 @@
         <nav>
             <ul id="lobby-user-list">
                 @for(player <- players) {
-                <li>@player</li>
+                    <li>@player</li>
                 }
             </ul>
         </nav>
     </div>
     <div id="chat-container">
         <label>Lobby chat</label>
-        <textarea rows="10" cols="60" readonly id="lobby-chat-textarea"></textarea>
+        <div id="chat-area"></div>
         <input type="text" id="lobby-message-input">
     </div>
 </div>

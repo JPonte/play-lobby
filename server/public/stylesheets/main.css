@@ -16,23 +16,39 @@
 
 #social-container {
   display: flex;
-  align-items: center | stretch;
+  align-items: center stretch;
   flex-direction: row;
 }
 
+#chat-area {
+  height: 200px;
+  padding: 12px 12px;
+  margin: 8px 0px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background-color: #ffffff;
+  display: flex;
+  flex-direction: column-reverse;
+  overflow: auto;
+}
+
 #player-list {
+    flex-grow: 1;
+    margin: 8px;
+    padding: 8px;
+    background: #dddddd;
+    border-radius: 4px;
+}
+
+#chat-container {
     flex-grow: 2;
     margin: 8px;
     padding: 8px;
     background: #dddddd;
     border-radius: 4px;
-}
-#chat-container {
-    flex-grow: 3;
-    margin: 8px;
-    padding: 8px;
-    background: #dddddd;
-    border-radius: 4px;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
 }
 
 #games-container {
@@ -41,13 +57,6 @@
     background: #dddddd;
     border-radius: 4px;
 }
-
-#chat-container {
-  display: flex;
-  align-items: start;
-  flex-direction: column;
-}
-
 
 input[type=text], input[type=password], select {
   padding: 12px 12px;
