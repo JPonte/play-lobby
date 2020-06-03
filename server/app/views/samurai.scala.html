@@ -5,5 +5,5 @@
     <a href="@routes.LobbyController.index()">Back to lobby</a>
 </div>
 <canvas id="main-canvas"></canvas>
-@scalajs.html.scripts("samurai", routes.Assets.versioned(_).toString, name => getClass.getResource(s"/public/$name") != null)
+@scalajs.html.scripts("samurai-client", routes.Assets.versioned(_).toString, name => getClass.getResource(s"/public/$name") != null)
 }
