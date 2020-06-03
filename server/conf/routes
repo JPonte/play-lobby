@@ -11,6 +11,7 @@ POST    /validateLogin              controllers.LoginController.validateLogin
 POST    /validateRegister           controllers.LoginController.validateRegister
 GET     /logout                     controllers.LoginController.logout
 GET     /samurai                    controllers.LobbyController.samurai
+GET     /partylobby                 controllers.LobbyController.partyLobby
 
 GET     /socket                     controllers.LobbyController.socket
 

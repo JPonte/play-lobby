@@ -1,24 +1,21 @@
 @(webSocketUrl: String, username: String, players: Seq[String])(implicit flash: Flash)
 
 @main("Lobby") {
-<h1>Samurai</h1>
-<div id="actions-header">
-    <button id="create-game-button">Create Game</button>
-    <a href="@routes.LoginController.logout()">Logout</a>
-</div>
-<div id="social-container">
-    <div id="player-list">
-        <label>Players</label>
-        <nav>
-            <ul id="lobby-user-list">
-                @for(player <- players) {
-                <li>@player</li>
-                }
-            </ul>
-        </nav>
+<div id="party-lobby-container">
+    <div id="actions-header">
+        <a href="@routes.LobbyController.index()">Back to lobby</a>
+        <button>Leave Game</button>
+    </div>
+    <div id="top-container">
+        <div id="party-player-list" class="basic-lobby-container">
+            @for(player <- players) {
+            <div class="waiting-player">@player</div>
+            }
+        </div>
+        <button id="start-game-button">Start Game</button>
     </div>
     <div id="chat-container">
-        <label>Lobby chat</label>
+        <label>Party chat</label>
         <div id="chat-area"></div>
         <input type="text" id="lobby-message-input">
     </div>

@@ -50,4 +50,11 @@ class LobbyController @Inject()(val controllerComponents: ControllerComponents,
     }
   }
 
+  def partyLobby(): Action[AnyContent] = userAction { implicit request: UserRequest[AnyContent] =>
+    request.username.fold(Redirect(routes.LoginController.login())) { username =>
+      val webSocketUrl = routes.LobbyController.socket().webSocketURL()
+      Ok(views.html.party_lobby(webSocketUrl, username.value, Seq(username.value, "ponte", "merdas")))
+    }
+  }
+
 }
