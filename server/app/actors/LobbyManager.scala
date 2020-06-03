@@ -12,7 +12,7 @@ class LobbyManager extends Actor {
   private var usersMap = Map.empty[Username, Set[ActorRef]]
 
   override def receive: Receive = {
-    case UserList() =>
+    case OnlineUserList() =>
       implicit val ec: ExecutionContext = context.dispatcher
       Future(usersMap.keys).pipeTo(sender())
     case NewUser(username, actor) =>
@@ -43,5 +43,8 @@ object LobbyManager {
   case class NewUser(username: Username, actor: ActorRef)
   case class UserLeft(username: Username, actor: ActorRef)
   case class Command(command: WebSocketCommand)
-  case class UserList()
+  case class OnlineUserList()
+
+  case class GamesListChanged()
+  case class PartyLobbyUsersChanged(gameId: Int)
 }

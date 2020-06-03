@@ -29,7 +29,7 @@ class LobbyController @Inject()(val controllerComponents: ControllerComponents,
 
   def index(): Action[AnyContent] = userAction.async { implicit request: UserRequest[AnyContent] =>
     implicit val timeout: Timeout = Timeout(5.seconds)
-    (lobbyManager ? LobbyManager.UserList()).map(_.asInstanceOf[Set[Username]]).map { currentUsers  =>
+    (lobbyManager ? LobbyManager.OnlineUserList()).map(_.asInstanceOf[Set[Username]]).map { currentUsers  =>
       request.username.fold(Redirect(routes.LoginController.login())) { _ =>
         val webSocketUrl = routes.LobbyController.socket().webSocketURL()
         val username = request.username.map(_.value).getOrElse("")
