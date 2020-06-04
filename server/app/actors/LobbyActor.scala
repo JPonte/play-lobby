@@ -1,18 +1,21 @@
 package actors
 
-import actors.LobbyActor.SendCommand
+import actors.LobbyActor.SendToClient
 import akka.actor.{Actor, ActorRef, Props}
-import core.{LobbyMessage, Username, WebSocketCommand}
+import core.Username
 import io.circe.generic.auto._
+import io.circe.parser._
 import io.circe.syntax._
+import websocket._
 
 class LobbyActor(username: Username, out: ActorRef, manager: ActorRef) extends Actor {
 
   manager ! LobbyManager.NewUser(username, self)
 
   override def receive: Receive = {
-    case message: String => manager ! LobbyManager.Command(LobbyMessage(username, message))
-    case SendCommand(command) => out ! command.asJson.spaces2
+    case message: String =>
+      decode[ClientWebSocketMessage](message).toOption.foreach(c => manager ! LobbyManager.ClientMessageReceived(username, c))
+    case SendToClient(message) => out ! message.asJson.spaces2
     case m => println(s"Unhandled message: $m")
   }
 
@@ -25,5 +28,5 @@ class LobbyActor(username: Username, out: ActorRef, manager: ActorRef) extends A
 object LobbyActor {
   def props(username: Username, out: ActorRef, manager: ActorRef): Props = Props(new LobbyActor(username, out, manager))
 
-  case class SendCommand(message: WebSocketCommand)
+  case class SendToClient(message: ServerWebSocketMessage)
 }

@@ -1,7 +1,7 @@
 package controllers
 
 import actions.{UserAction, UserRequest}
-import actors.{LobbyActor, LobbyManager}
+import actors.{GameActor, LobbyActor, LobbyManager}
 import akka.actor.{ActorSystem, Props}
 import javax.inject.{Inject, Singleton}
 import play.api.libs.streams.ActorFlow
@@ -29,7 +29,7 @@ class LobbyController @Inject()(val controllerComponents: ControllerComponents,
 
   def index(): Action[AnyContent] = userAction.async { implicit request: UserRequest[AnyContent] =>
     implicit val timeout: Timeout = Timeout(5.seconds)
-    (lobbyManager ? LobbyManager.OnlineUserList()).map(_.asInstanceOf[Set[Username]]).map { currentUsers  =>
+    (lobbyManager ? LobbyManager.RequestOnlineUserList()).map(_.asInstanceOf[Set[Username]]).map { currentUsers  =>
       request.username.fold(Redirect(routes.LoginController.login())) { _ =>
         val webSocketUrl = routes.LobbyController.socket().webSocketURL()
         val username = request.username.map(_.value).getOrElse("")
@@ -78,6 +78,10 @@ class LobbyController @Inject()(val controllerComponents: ControllerComponents,
 
       gameRepository.createGame(2, pw).flatMap {
         case Some(gameInfo) =>
+
+          val gameActorRef = system.actorOf(Props(classOf[GameActor], gameInfo.gameId), s"GameActor-${gameInfo.gameId}")
+          lobbyManager ! LobbyManager.GameCreated(gameInfo.gameId, gameActorRef)
+
           gameRepository.joinGame(username, gameInfo.gameId).map {
             case true => Redirect(routes.LobbyController.partyLobby())
             case _ => Redirect(routes.LobbyController.index()).flashing("error" -> "Failed to join the game")

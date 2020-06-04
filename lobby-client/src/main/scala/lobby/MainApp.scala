@@ -1,12 +1,13 @@
 package lobby
 
-import core.{LobbyMessage, SystemLobbyMessage, UpdatedUsersList, Username, WebSocketCommand}
+import core.Username
 import org.scalajs.dom
 import org.scalajs.dom.{WebSocket, document, html}
 import io.circe._
 import io.circe.generic.auto._
 import io.circe.parser._
 import io.circe.syntax._
+import websocket.{ClientLobbyChatMessage, ClientWebSocketMessage, ServerLobbyChatMessage, ServerUpdatedLobbyUsers, ServerWebSocketMessage}
 
 
 object MainApp {
@@ -14,8 +15,7 @@ object MainApp {
     val urlInput = document.getElementById("data-url").asInstanceOf[html.Input]
     val url = urlInput.value
 
-    val socket = new WebSocket(url);
-
+    val socket = new WebSocket(url)
 
     val inputField = document.getElementById("lobby-message-input").asInstanceOf[html.Input]
     val userList = document.getElementById("lobby-user-list").asInstanceOf[html.UList]
@@ -23,21 +23,21 @@ object MainApp {
 
     inputField.onkeydown = { event =>
       if (event.key == "Enter") {
-        socket.send(inputField.value);
+        socket.send(ClientLobbyChatMessage(inputField.value).asInstanceOf[ClientWebSocketMessage].asJson.noSpaces)
         inputField.value = ""
       }
     }
 
     socket.onmessage = { event =>
-      val jsonData = decode[WebSocketCommand](event.data.toString)
+      val jsonData = decode[ServerWebSocketMessage](event.data.toString)
 
       jsonData match {
         case Left(error) => println(s"Error $error decoding ${event.data}")
-        case Right(SystemLobbyMessage(content)) =>
+        case Right(ServerLobbyChatMessage(None, content)) =>
           chatArea.innerHTML = s"<div><b>$content</b></div>${chatArea.innerHTML}"
-        case Right(LobbyMessage(Username(sender), content)) =>
+        case Right(ServerLobbyChatMessage(Some(Username(sender)), content)) =>
           chatArea.innerHTML = s"<div><b>$sender:</b> $content</div>${chatArea.innerHTML}"
-        case Right(UpdatedUsersList(users)) =>
+        case Right(ServerUpdatedLobbyUsers(users)) =>
           userList.innerHTML = ""
           users.foreach { user =>
             userList.innerHTML += s"<li>$user</li>"
