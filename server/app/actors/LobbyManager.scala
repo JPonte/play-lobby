@@ -8,6 +8,7 @@ import websocket._
 
 import scala.concurrent.{ExecutionContext, Future}
 
+//TODO: Split into LobbyManager and GameManager
 class LobbyManager extends Actor {
 
   private var usersMap = Map.empty[Username, Set[ActorRef]]
@@ -41,6 +42,10 @@ class LobbyManager extends Actor {
       gameActors = gameActors - gameId
       //TODO: ask the game actor for the users
       self ! InternalLobbyMessage(ServerUpdatedPartyUsers(gameId, Seq()))
+    case PartyChatMessage(gameId, sender, content, recipients) =>
+      recipients.flatMap(r => usersMap(r)).foreach(_ ! LobbyActor.SendToClient(ServerPartyChatMessage(Some(sender), gameId, content)))
+    case ClientMessageReceived(sender, ClientPartyChatMessage(gameId, content)) =>
+      gameActors.get(gameId).foreach(_ ! GameActor.ChatMessage(sender, content, self))
     case ClientMessageReceived(sender, ClientLobbyChatMessage(content)) =>
       usersMap.values.flatten.foreach(_ ! LobbyActor.SendToClient(ServerLobbyChatMessage(Some(sender), content)))
     case InternalLobbyMessage(message) =>
@@ -59,4 +64,5 @@ object LobbyManager {
   case class ClientMessageReceived(sender: Username, message: ClientWebSocketMessage)
   case class InternalLobbyMessage(message: ServerWebSocketMessage)
   case class InternalPartyMessage(gameId: Int, message: ServerWebSocketMessage)
+  case class PartyChatMessage(gameId: Int, sender: Username, content: String, recipients: Seq[Username])
 }

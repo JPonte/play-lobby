@@ -26,6 +26,9 @@ class LobbyController @Inject()(val controllerComponents: ControllerComponents,
 
   private val lobbyManager = system.actorOf(Props[LobbyManager], "LobbyManager")
   private val gameRepository = new GameInfoRepository(db)
+  gameRepository.getAllWaitingGames.foreach(_.foreach { gameInfo =>
+    startGameActor(gameInfo.gameId)
+  })
 
   def index(): Action[AnyContent] = userAction.async { implicit request: UserRequest[AnyContent] =>
     implicit val timeout: Timeout = Timeout(5.seconds)
@@ -78,10 +81,7 @@ class LobbyController @Inject()(val controllerComponents: ControllerComponents,
 
       gameRepository.createGame(2, pw).flatMap {
         case Some(gameInfo) =>
-
-          val gameActorRef = system.actorOf(Props(classOf[GameActor], gameInfo.gameId), s"GameActor-${gameInfo.gameId}")
-          lobbyManager ! LobbyManager.GameCreated(gameInfo.gameId, gameActorRef)
-
+          startGameActor(gameInfo.gameId)
           gameRepository.joinGame(username, gameInfo.gameId).map {
             case true => Redirect(routes.LobbyController.partyLobby())
             case _ => Redirect(routes.LobbyController.index()).flashing("error" -> "Failed to join the game")
@@ -90,6 +90,11 @@ class LobbyController @Inject()(val controllerComponents: ControllerComponents,
           Future.successful(Redirect(routes.LobbyController.index()).flashing("error" -> "Failed to create a game"))
       }
     }
+  }
+
+  private def startGameActor(gameId: Int): Unit = {
+    val gameActorRef = system.actorOf(Props(classOf[GameActor], gameId, gameRepository), s"GameActor-${gameId}")
+    lobbyManager ! LobbyManager.GameCreated(gameId, gameActorRef)
   }
 
 }

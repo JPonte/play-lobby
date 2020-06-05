@@ -8,19 +8,19 @@ import io.circe.parser._
 import io.circe.syntax._
 import websocket._
 
-class LobbyActor(username: Username, out: ActorRef, manager: ActorRef) extends Actor {
+class LobbyActor(username: Username, out: ActorRef, lobbyManager: ActorRef) extends Actor {
 
-  manager ! LobbyManager.NewUser(username, self)
+  lobbyManager ! LobbyManager.NewUser(username, self)
 
   override def receive: Receive = {
     case message: String =>
-      decode[ClientWebSocketMessage](message).toOption.foreach(c => manager ! LobbyManager.ClientMessageReceived(username, c))
+      decode[ClientWebSocketMessage](message).toOption.foreach(c => lobbyManager ! LobbyManager.ClientMessageReceived(username, c))
     case SendToClient(message) => out ! message.asJson.spaces2
     case m => println(s"Unhandled message: $m")
   }
 
   override def postStop(): Unit = {
-    manager ! LobbyManager.UserLeft(username, self)
+    lobbyManager ! LobbyManager.UserLeft(username, self)
   }
 
 }
