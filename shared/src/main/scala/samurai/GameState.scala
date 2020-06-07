@@ -1,9 +1,7 @@
 package samurai
 
 import samurai.Board.Board
-import samurai.Figure.Figure
 import samurai.GameState._
-import utils.MatrixPosition
 
 import scala.annotation.tailrec
 
@@ -22,7 +20,7 @@ case class PlayerState(playerId: Int, tokens: Seq[Token], deck: Seq[Token]) {
   }
 }
 
-case class GameState(board: Board, players: Map[Int, PlayerState], figuresDeck: Seq[Figure], nextPlayer: Int) {
+case class GameState(board: Board, players: Map[Int, PlayerState], figuresDeck: FigureDeck, currentPlayer: Int, fullTokensPlayed: Int) {
 
   def getGamePhase: GamePhase = {
     if (figuresDeck.nonEmpty) FigurePlacementPhase
@@ -34,15 +32,30 @@ case class GameState(board: Board, players: Map[Int, PlayerState], figuresDeck: 
 
   def play(gameMove: GameMove): Option[GameState] = {
     gameMove match {
-      case AddFigure(`nextPlayer`, figure, location) if getGamePhase == FigurePlacementPhase =>
-        val playerState = players(nextPlayer)
-        val figure = figuresDeck.head
-        val boardTile = board.get(location)
-      case AddToken(`nextPlayer`, token, location) if getGamePhase == TokenPlacementPhase =>
+      case AddFigure(`currentPlayer`, figure, location) if getGamePhase == FigurePlacementPhase && figuresDeck.figureCount(figure) > 0 =>
+        board.get(location) match {
+          case Some(bt @ BoardTile(Tile.City, figures, _)) if figures.size < 2 && !figures.contains(figure) =>
+            Some(copy(board = board + (location -> bt.copy(figures = figures + figure))))
+          case Some(bt @ BoardTile(Tile.Village, figures, _)) if figures.isEmpty =>
+            Some(copy(board = board + (location -> bt.copy(figures = figures + figure))))
+          case _ => None
+        }
+      case AddToken(`currentPlayer`, token, location) if getGamePhase == TokenPlacementPhase =>
+        val playerState = players(currentPlayer) //TODO: update player state
+        val fullTokensAdd = if(token.isInstanceOf[CharacterToken]) 0 else 1
+        board.get(location) match {
+          case Some(bt @ BoardTile(Tile.Land, _, None)) if !token.isInstanceOf[Ship] =>
+            Some(copy(board = board + (location -> bt.copy(token = Some(token))), fullTokensPlayed = fullTokensPlayed + fullTokensAdd))
+          case Some(bt @ BoardTile(Tile.Sea, _, None)) if token.isInstanceOf[Ship] =>
+            Some(copy(board = board + (location -> bt.copy(token = Some(token))), fullTokensPlayed = fullTokensPlayed + fullTokensAdd))
+          case _ => None
+        }
+
+      case EndTurn(`currentPlayer`) if fullTokensPlayed > 0=>
+        Some(copy(currentPlayer = (currentPlayer + 1) % 2, fullTokensPlayed = 0))
       case _ =>
-        // Invalid play
+        None
     }
-    ???
   }
 }
 

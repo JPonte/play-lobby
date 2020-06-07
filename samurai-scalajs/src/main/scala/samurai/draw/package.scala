@@ -40,13 +40,14 @@ package object draw {
       case Ronin(i, _) => s"Ro $i"
     }
     val color = token.playerId match {
-      case 1 => "#ff0000"
-      case 2 => "#00ff00"
-      case 3 => "#0000ff"
-      case 4 => "#cccc00"
+      case 0 => "#fc7c72"
+      case 1 => "#7cec72"
+      case 2 => "#7c72fc"
+      case 3 => "#cccc72"
     }
 
-    drawHex(centerX, centerY, r, "#f9f8e5", Some(color), context)
+    drawHex(centerX, centerY, r, color, None, context)
+    drawHex(centerX, centerY, r * 0.85, "#f9f8e5", None, context)
 
     context.fillStyle = color
     context.font = s"${r / 2}px Arial"

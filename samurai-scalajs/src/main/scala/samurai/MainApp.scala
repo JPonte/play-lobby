@@ -71,7 +71,7 @@ object MainApp {
     val board = twoPlayerBoard.map {
       case (coords, t) =>
         val inf = new Random().nextInt(3) + 1
-        val playerId = new Random().nextInt(2) + 1
+        val playerId = new Random().nextInt(4) + 0
         val setTile = new Random().nextInt(4) > 2
 
         val token = None
@@ -101,18 +101,23 @@ object MainApp {
         coords -> BoardTile(t, figures, token)
     }
     val playerTokens = Seq(
+      SamuraiToken(1, 0),
       SamuraiToken(1, 1),
-      SamuraiToken(1, 1),
-      SamuraiToken(2, 1),
-      SamuraiToken(3, 1),
-      FigureToken(Figure.RiceField, 3, 1)
+      SamuraiToken(2, 2),
+      SamuraiToken(3, 3),
+      //      FigureToken(Figure.RiceField, 3, 0)
     )
 
-    val cols = board.keys.map(_.column).max + 1
-    val rows = board.keys.map(_.row).max + 1
+    val selfPlayerId = 0
+    var gameState = GameState(board = board, Map(0 -> PlayerState(0, playerTokens, Seq())), FigureDeck(0, 0, 0), 0, 0)
+
+    val cols = gameState.board.keys.map(_.column).max + 1
+    val rows = gameState.board.keys.map(_.row).max + 1
 
     var mouse = CanvasPosition(0, 0)
     var clickPosition = Option(CanvasPosition(0, 0))
+    var selectedToken = Option.empty[Int]
+
     var boardDrawProps = BoardDrawProps(
       Rect(0, 0, dom.window.innerWidth, dom.window.innerHeight),
       cols,
@@ -132,7 +137,8 @@ object MainApp {
       clickPosition = Some(CanvasPosition(event.clientX - clientRect.left, event.clientY - clientRect.top))
     }
 
-    var prevTime: Double = 0;
+    var prevTime: Double = 0
+
     def draw(time: Double) {
       var delta = time - prevTime
       prevTime = time
@@ -161,19 +167,39 @@ object MainApp {
 
       val hoveredHex = getHoveredHex(mouse, boardDrawProps)
       val highlightedHexes = hoveredHex.map(Board.getNeighbours)
-        .map(_.filter(n => board.get(n).exists(t => Tile.Settlements.contains(t.tile))))
+        .map(_.filter(n => gameState.board.get(n).exists(t => Tile.Settlements.contains(t.tile))))
         .getOrElse(Set()).map(_ -> "#eeeeff").toMap ++ hoveredHex.map(h => Map(h -> "#000000")).getOrElse(Map())
+
       val hoveredToken = getHoveredPlayerToken(mouse, playerTokenDrawProps)
+
+      clickPosition.flatMap(getHoveredPlayerToken(_, playerTokenDrawProps)).foreach { click =>
+        println(click)
+        val tokens = gameState.players(selfPlayerId).tokens
+        if (tokens.size > click.column) {
+          selectedToken = Some(click.column)
+          println(selectedToken)
+        }
+      }
+
+      clickPosition.flatMap(getHoveredHex(_, boardDrawProps)).foreach { click =>
+        selectedToken.foreach { st =>
+          val token = gameState.players(selfPlayerId).tokens(st)
+          gameState.play(AddToken(0, token, click)).foreach(gameState = _)
+        }
+      }
+
+      clickPosition = None
 
       context.clearRect(0, 0, canvas.width, canvas.height)
       context.fillStyle = "#eee"
       context.fillRect(0, 0, canvas.width, canvas.height)
-      drawBoard(board, boardDrawProps, context, highlightedHexes)
+      drawBoard(gameState.board, boardDrawProps, context, highlightedHexes)
 
       drawPlayerTokens(
         playerTokens,
         playerTokenDrawProps,
         hoveredToken,
+        selectedToken,
         context
       )
 
@@ -190,7 +216,8 @@ object MainApp {
   def drawPlayerTokens(
                         tokens: Seq[Token],
                         props: PlayerTokenDrawProps,
-                        hoveredToken: Option[CanvasPosition],
+                        hoveredToken: Option[MatrixPosition],
+                        selectedToken: Option[Int],
                         context: dom.CanvasRenderingContext2D
                       ): Unit = {
 
@@ -212,8 +239,12 @@ object MainApp {
         val centerX = x * props.xStep + props.offsetX + props.drawRect.x
         val centerY = y * props.yStep + props.offsetY + props.drawRect.y
 
+        if (selectedToken.contains(i)) {
+          drawHex(centerX, centerY, props.hexRadius, "#fd9e61", None, context)
+        }
+
         hoveredToken.foreach {
-          case CanvasPosition(`i`, 0) =>
+          case MatrixPosition(`i`, 0) =>
             drawHex(centerX, centerY, props.hexRadius, "#000000", None, context)
           case _ =>
         }
@@ -330,13 +361,13 @@ object MainApp {
   def getHoveredPlayerToken(
                              mouse: CanvasPosition,
                              props: PlayerTokenDrawProps
-                           ): Option[CanvasPosition] = {
+                           ): Option[MatrixPosition] = {
 
     val row = (mouse.y - props.offsetY - props.drawRect.y) / props.yStep
     val col = (mouse.x - props.offsetX - props.drawRect.x) / props.xStep
 
     if (props.drawRect.isInside(mouse))
-      Some(CanvasPosition(Math.round(col).toInt, Math.round(row).toInt))
+      Some(MatrixPosition(Math.round(col).toInt, Math.round(row).toInt))
     else
       None
   }
