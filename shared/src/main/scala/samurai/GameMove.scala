@@ -7,6 +7,6 @@ sealed trait GameMove {
   def player: Int
 }
 
-case class AddToken(player: Int, token: Token, location: MatrixPosition) extends GameMove
+case class AddToken(player: Int, tokenIndex: Int, location: MatrixPosition) extends GameMove
 case class AddFigure(player: Int, figure: Figure, location: MatrixPosition) extends GameMove
 case class EndTurn(player: Int) extends GameMove

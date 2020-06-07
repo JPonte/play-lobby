@@ -1,13 +1,11 @@
 package samurai
 
 import org.scalajs.dom
-import org.scalajs.dom.document
-import org.scalajs.dom.html
+import org.scalajs.dom.{document, html}
 import samurai.Board._
-import samurai.BoardTile
 import samurai.Figure._
-import utils.MatrixPosition
 import samurai.draw._
+import utils.MatrixPosition
 
 import scala.util.Random
 
@@ -30,12 +28,12 @@ object MainApp {
         drawRect.height / (1.5 * rows + 0.5)
       )
 
-    val xStep = 2 * hexRadius * pi6cos
-    val yStep = hexRadius + hexRadius * pi6sin
+    val xStep: Double = 2 * hexRadius * pi6cos
+    val yStep: Double = hexRadius + hexRadius * pi6sin
 
-    val offsetX =
+    val offsetX: Double =
       xStep / 2 + (drawRect.width - hexRadius * pi6cos * (2 * columns + 1)) / 2
-    val offsetY =
+    val offsetY: Double =
       hexRadius + (drawRect.height - hexRadius * (1.5 * rows + 0.5)) / 2
   }
 
@@ -46,11 +44,11 @@ object MainApp {
         drawRect.height / (rows * 2)
       )
 
-    val xStep = 2 * hexRadius
-    val yStep = 2 * hexRadius
+    val xStep: Double = 2 * hexRadius
+    val yStep: Double = 2 * hexRadius
 
-    val offsetX = (drawRect.width - (columns * xStep)) / 2 + xStep / 2
-    val offsetY = (drawRect.height - (rows * yStep)) / 2 + yStep / 2
+    val offsetX: Double = (drawRect.width - (columns * xStep)) / 2 + xStep / 2
+    val offsetY: Double = (drawRect.height - (rows * yStep)) / 2 + yStep / 2
   }
 
   def main(args: Array[String]): Unit = {
@@ -59,12 +57,12 @@ object MainApp {
     val context =
       canvas.getContext("2d").asInstanceOf[dom.CanvasRenderingContext2D]
 
-    canvas.width = dom.window.innerWidth.toInt;
-    canvas.height = dom.window.innerHeight.toInt;
+    canvas.width = dom.window.innerWidth.toInt
+    canvas.height = dom.window.innerHeight.toInt
 
-    dom.window.onresize = { event =>
-      canvas.width = dom.window.innerWidth.toInt;
-      canvas.height = dom.window.innerHeight.toInt;
+    dom.window.onresize = { _ =>
+      canvas.width = dom.window.innerWidth.toInt
+      canvas.height = dom.window.innerHeight.toInt
     }
 
     //STUB
@@ -82,12 +80,7 @@ object MainApp {
         else
           None
 
-        val figures: Set[Figure] =
-          if (t == Tile.Village) {
-            Set(Figure.RiceField)
-          } else if (t == Tile.City) {
-            Set(Figure.RiceField, Figure.Helmet)
-          } else if (t == Tile.Edo) {
+        val figures: Set[Figure] = if (t == Tile.Edo) {
             Set(
               Figure.RiceField,
               Figure.Helmet,
@@ -109,7 +102,28 @@ object MainApp {
     )
 
     val selfPlayerId = 0
-    var gameState = GameState(board = board, Map(0 -> PlayerState(0, playerTokens, Seq())), FigureDeck(0, 0, 0), 0, 0)
+    var gameState = GameState(board = board, Map(0 -> PlayerState(0, playerTokens, Seq(), FigureDeck(0, 0, 0))), FigureDeck(6, 6, 6), 0, 0)
+
+    while(gameState.figuresDeck.nonEmpty) {
+      val unsetCities = gameState.board.filter {
+        case (_, BoardTile(Tile.City, figures, _)) => figures.size < 2
+        case _ => false
+      }
+      val unsetVillages = gameState.board.filter {
+        case (_, BoardTile(Tile.Village, figures, _)) => figures.isEmpty
+        case _ => false
+      }
+      val unsetTiles = if (unsetCities.nonEmpty) unsetCities else unsetVillages
+      val tileIndex = Random.nextInt(unsetTiles.size)
+      val tile = unsetTiles.toSeq(tileIndex)
+
+      val availableFigures = gameState.figuresDeck.availableFigures -- tile._2.figures
+      val figureIndex = Random.nextInt(availableFigures.size)
+      val figure = availableFigures.toSeq(figureIndex)
+
+      val gameMove = AddFigure(gameState.currentPlayer, figure, tile._1)
+      gameState.play(gameMove).foreach(gameState = _)
+    }
 
     val cols = gameState.board.keys.map(_.column).max + 1
     val rows = gameState.board.keys.map(_.row).max + 1
@@ -137,11 +151,7 @@ object MainApp {
       clickPosition = Some(CanvasPosition(event.clientX - clientRect.left, event.clientY - clientRect.top))
     }
 
-    var prevTime: Double = 0
-
-    def draw(time: Double) {
-      var delta = time - prevTime
-      prevTime = time
+    def draw() {
 
       boardDrawProps = BoardDrawProps(
         Rect(
@@ -175,7 +185,7 @@ object MainApp {
       clickPosition.flatMap(getHoveredPlayerToken(_, playerTokenDrawProps)).foreach { click =>
         println(click)
         val tokens = gameState.players(selfPlayerId).tokens
-        if (tokens.size > click.column) {
+        if (tokens.size > click.column && click.column >= 0) {
           selectedToken = Some(click.column)
           println(selectedToken)
         }
@@ -183,8 +193,7 @@ object MainApp {
 
       clickPosition.flatMap(getHoveredHex(_, boardDrawProps)).foreach { click =>
         selectedToken.foreach { st =>
-          val token = gameState.players(selfPlayerId).tokens(st)
-          gameState.play(AddToken(0, token, click)).foreach(gameState = _)
+          gameState.play(AddToken(0, st, click)).foreach(gameState = _)
         }
       }
 
@@ -196,7 +205,7 @@ object MainApp {
       drawBoard(gameState.board, boardDrawProps, context, highlightedHexes)
 
       drawPlayerTokens(
-        playerTokens,
+        gameState.players(selfPlayerId).tokens,
         playerTokenDrawProps,
         hoveredToken,
         selectedToken,
@@ -207,10 +216,10 @@ object MainApp {
         .map(mp => getHoveredHex(mp, boardDrawProps))
         .foreach(println)
       clickPosition = None
-      dom.window.requestAnimationFrame(draw)
+      dom.window.requestAnimationFrame(_ => draw())
     }
 
-    dom.window.requestAnimationFrame(draw)
+    dom.window.requestAnimationFrame(_ => draw())
   }
 
   def drawPlayerTokens(
