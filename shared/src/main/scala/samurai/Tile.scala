@@ -8,4 +8,6 @@ object Tile {
     val Village: Tile = 3
     val City: Tile = 4
     val Edo: Tile = 5
+
+    val Settlements: Set[Tile] = Set(Village, City, Edo)
 }

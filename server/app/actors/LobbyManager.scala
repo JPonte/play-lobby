@@ -12,7 +12,6 @@ import scala.concurrent.{ExecutionContext, Future}
 class LobbyManager extends Actor {
 
   private var usersMap = Map.empty[Username, Set[ActorRef]]
-  private var gameActors = Map.empty[Int, ActorRef]
 
   override def receive: Receive = {
     case RequestOnlineUserList() =>
@@ -34,22 +33,12 @@ class LobbyManager extends Actor {
       } else {
         usersMap = usersMap + (username -> updatedActors)
       }
-    case GameCreated(gameId, actor) =>
-      gameActors = gameActors + (gameId -> actor)
-      //TODO: ask the game actor for the users
-      self ! InternalLobbyMessage(ServerUpdatedPartyUsers(gameId, Seq()))
-    case GameFinished(gameId) =>
-      gameActors = gameActors - gameId
-      //TODO: ask the game actor for the users
-      self ! InternalLobbyMessage(ServerUpdatedPartyUsers(gameId, Seq()))
     case PartyChatMessage(gameId, sender, content, recipients) =>
-      recipients.flatMap(r => usersMap(r)).foreach(_ ! LobbyActor.SendToClient(ServerPartyChatMessage(Some(sender), gameId, content)))
-    case ClientMessageReceived(sender, ClientPartyChatMessage(gameId, content)) =>
-      gameActors.get(gameId).foreach(_ ! GameActor.ChatMessage(sender, content, self))
+      recipients.flatMap(r => usersMap(r)).foreach(_ ! WebSocketActor.SendToClient(ServerPartyChatMessage(Some(sender), gameId, content)))
     case ClientMessageReceived(sender, ClientLobbyChatMessage(content)) =>
-      usersMap.values.flatten.foreach(_ ! LobbyActor.SendToClient(ServerLobbyChatMessage(Some(sender), content)))
+      usersMap.values.flatten.foreach(_ ! WebSocketActor.SendToClient(ServerLobbyChatMessage(Some(sender), content)))
     case InternalLobbyMessage(message) =>
-      usersMap.values.flatten.foreach(_ ! LobbyActor.SendToClient(message))
+      usersMap.values.flatten.foreach(_ ! WebSocketActor.SendToClient(message))
     case m => println(s"Unknown message sent to LobbyManager $m")
   }
 }
@@ -58,8 +47,6 @@ object LobbyManager {
   case class RequestOnlineUserList()
   case class NewUser(username: Username, actor: ActorRef)
   case class UserLeft(username: Username, actor: ActorRef)
-  case class GameCreated(gameId: Int, actor: ActorRef)
-  case class GameFinished(gameId: Int)
   case class PartyLobbyUsersChanged(gameId: Int)
   case class ClientMessageReceived(sender: Username, message: ClientWebSocketMessage)
   case class InternalLobbyMessage(message: ServerWebSocketMessage)

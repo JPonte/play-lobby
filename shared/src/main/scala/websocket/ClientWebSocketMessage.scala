@@ -2,5 +2,10 @@ package websocket
 
 sealed trait ClientWebSocketMessage
 
-case class ClientLobbyChatMessage(content: String) extends ClientWebSocketMessage
-case class ClientPartyChatMessage(gameId: Int, content: String) extends ClientWebSocketMessage
+sealed trait LobbyMessage
+sealed trait GameMessage {
+  def gameId: Int
+}
+
+case class ClientLobbyChatMessage(content: String) extends ClientWebSocketMessage with LobbyMessage
+case class ClientPartyChatMessage(gameId: Int, content: String) extends ClientWebSocketMessage with GameMessage

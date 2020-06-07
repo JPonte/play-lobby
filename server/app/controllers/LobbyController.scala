@@ -1,7 +1,7 @@
 package controllers
 
 import actions.{UserAction, UserRequest}
-import actors.{GameActor, LobbyActor, LobbyManager}
+import actors.{GameActor, GameManager, WebSocketActor, LobbyManager}
 import akka.actor.{ActorSystem, Props}
 import javax.inject.{Inject, Singleton}
 import play.api.libs.streams.ActorFlow
@@ -25,6 +25,7 @@ class LobbyController @Inject()(val controllerComponents: ControllerComponents,
   extends BaseController with HasDatabaseConfigProvider[JdbcProfile] {
 
   private val lobbyManager = system.actorOf(Props[LobbyManager], "LobbyManager")
+  private val gameManager = system.actorOf(Props(classOf[GameManager], lobbyManager), "GameManager")
   private val gameRepository = new GameInfoRepository(db)
   gameRepository.getAllWaitingGames.foreach(_.foreach { gameInfo =>
     startGameActor(gameInfo.gameId)
@@ -47,7 +48,7 @@ class LobbyController @Inject()(val controllerComponents: ControllerComponents,
       case None => Left(Forbidden)
       case Some(username) =>
         Right(ActorFlow.actorRef { out =>
-          LobbyActor.props(username, out, lobbyManager)
+          WebSocketActor.props(username, out, lobbyManager, gameManager)
         })
     })
   }
@@ -94,7 +95,7 @@ class LobbyController @Inject()(val controllerComponents: ControllerComponents,
 
   private def startGameActor(gameId: Int): Unit = {
     val gameActorRef = system.actorOf(Props(classOf[GameActor], gameId, gameRepository), s"GameActor-${gameId}")
-    lobbyManager ! LobbyManager.GameCreated(gameId, gameActorRef)
+    gameManager ! GameManager.GameCreated(gameId, gameActorRef)
   }
 
 }

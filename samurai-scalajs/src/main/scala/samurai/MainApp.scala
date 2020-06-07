@@ -7,15 +7,17 @@ import samurai.Board._
 import samurai.BoardTile
 import samurai.Figure._
 import utils.MatrixPosition
+import samurai.draw._
 
 import scala.util.Random
 
 object MainApp {
 
   case class CanvasPosition(x: Double, y: Double)
+
   case class Rect(x: Double, y: Double, width: Double, height: Double) {
     def isInside(position: CanvasPosition): Boolean =
-      position.x >= x && position.y >= y && position.x <=  x +width && position.y <= y + height
+      position.x >= x && position.y >= y && position.x <= x + width && position.y <= y + height
   }
 
   val pi6cos: Double = Math.cos(Math.PI / 6)
@@ -70,28 +72,28 @@ object MainApp {
       case (coords, t) =>
         val inf = new Random().nextInt(3) + 1
         val playerId = new Random().nextInt(2) + 1
-        val setTile = new Random().nextBoolean()
+        val setTile = new Random().nextInt(4) > 2
 
         val token = None
-        // if (t == Tile.Land && setTile)
-        //   Some(Ronin(inf, playerId))
-        // else if (t == Tile.Sea && setTile)
-        //   Some(Ship(inf, playerId))
-        // else
-        //   None
+        if (t == Tile.Land && setTile)
+          Some(Ronin(inf, playerId))
+        else if (t == Tile.Sea && setTile)
+          Some(Ship(inf, playerId))
+        else
+          None
 
         val figures: Set[Figure] =
           if (t == Tile.Village) {
             Set(Figure.RiceField)
           } else if (t == Tile.City) {
             Set(Figure.RiceField, Figure.Helmet)
-          } else if (t == Tile.Edo)(
+          } else if (t == Tile.Edo) {
             Set(
               Figure.RiceField,
               Figure.Helmet,
               Figure.Buddha
             )
-          )
+          }
           else {
             Set()
           }
@@ -158,12 +160,15 @@ object MainApp {
       )
 
       val hoveredHex = getHoveredHex(mouse, boardDrawProps)
+      val highlightedHexes = hoveredHex.map(Board.getNeighbours)
+        .map(_.filter(n => board.get(n).exists(t => Tile.Settlements.contains(t.tile))))
+        .getOrElse(Set()).map(_ -> "#eeeeff").toMap ++ hoveredHex.map(h => Map(h -> "#000000")).getOrElse(Map())
       val hoveredToken = getHoveredPlayerToken(mouse, playerTokenDrawProps)
 
       context.clearRect(0, 0, canvas.width, canvas.height)
       context.fillStyle = "#eee"
       context.fillRect(0, 0, canvas.width, canvas.height)
-      drawBoard(board, boardDrawProps, hoveredHex, context)
+      drawBoard(board, boardDrawProps, context, highlightedHexes)
 
       drawPlayerTokens(
         playerTokens,
@@ -183,11 +188,11 @@ object MainApp {
   }
 
   def drawPlayerTokens(
-      tokens: Seq[Token],
-      props: PlayerTokenDrawProps,
-      hoveredToken: Option[CanvasPosition],
-      context: dom.CanvasRenderingContext2D
-  ) = {
+                        tokens: Seq[Token],
+                        props: PlayerTokenDrawProps,
+                        hoveredToken: Option[CanvasPosition],
+                        context: dom.CanvasRenderingContext2D
+                      ): Unit = {
 
     // context.beginPath()
     // context.fillStyle = "#cccc55"
@@ -203,7 +208,7 @@ object MainApp {
     tokens.zipWithIndex.foreach {
       case (token, i) =>
         val x = i % props.columns
-        val y = (i / props.columns).toInt
+        val y = i / props.columns
         val centerX = x * props.xStep + props.offsetX + props.drawRect.x
         val centerY = y * props.yStep + props.offsetY + props.drawRect.y
 
@@ -218,11 +223,11 @@ object MainApp {
   }
 
   def drawBoard(
-      board: Board,
-      props: BoardDrawProps,
-      hoveredHex: Option[CanvasPosition],
-      context: dom.CanvasRenderingContext2D
-  ) {
+                 board: Board,
+                 props: BoardDrawProps,
+                 context: dom.CanvasRenderingContext2D,
+                 highlightedHexes: Map[MatrixPosition, String]
+               ): Unit = {
     // context.beginPath()
     // context.fillStyle = "#cccccc"
     // context.fillRect(
@@ -241,31 +246,31 @@ object MainApp {
           x * props.xStep + props.offsetX + offsetX + props.drawRect.x
         val centerY = y * props.yStep + props.offsetY + props.drawRect.y
 
-        val isHoveredHex = hoveredHex.exists(hh => hh.x == x && hh.y == y)
+        val highlightColor = highlightedHexes.get(MatrixPosition(x, y))
 
         val drawRadius =
-          if (isHoveredHex) props.hexRadius * 0.8 else props.hexRadius
+          if (highlightColor.nonEmpty) props.hexRadius * 0.8 else props.hexRadius
 
         val color1 = boardTile.tile match {
           case Tile.Empty => Option.empty[String]
-          case Tile.Sea   => Some("#8ea5ff")
-          case _          => Some("#dbc478")
+          case Tile.Sea => Some("#8ea5ff")
+          case _ => Some("#dbc478")
         }
 
         val color2 = boardTile.tile match {
           case Tile.Village => Some("#c078db")
-          case Tile.City    => Some("#d6405b")
-          case Tile.Edo     => Some("#f4d435")
-          case _            => Option.empty[String]
+          case Tile.City => Some("#d6405b")
+          case Tile.Edo => Some("#f4d435")
+          case _ => Option.empty[String]
         }
 
         color1.foreach { c =>
-          if (isHoveredHex) {
+          highlightColor.foreach { cc =>
             drawHex(
               centerX,
               centerY,
               props.hexRadius,
-              "#000000",
+              cc,
               None,
               context
             )
@@ -305,174 +310,10 @@ object MainApp {
     }
   }
 
-  def drawHex(
-      centerX: Double,
-      centerY: Double,
-      r: Double,
-      colorCode: String,
-      accentColorCode: Option[String],
-      context: dom.CanvasRenderingContext2D
-  ): Unit =
-    drawPoly(
-      centerX,
-      centerY,
-      r,
-      6,
-      colorCode,
-      context,
-      accentColorCode = accentColorCode
-    )
-
-  def drawToken(
-      token: Token,
-      centerX: Double,
-      centerY: Double,
-      r: Double,
-      context: dom.CanvasRenderingContext2D
-  ) {
-    val text = token match {
-      case FigureToken(Figure.Helmet, i, _)    => s"H $i"
-      case FigureToken(Figure.Buddha, i, _)    => s"B $i"
-      case FigureToken(Figure.RiceField, i, _) => s"R $i"
-      case SamuraiToken(i, _)                  => s"S $i"
-      case Ship(i, _)                          => s"Sh $i"
-      case ExchangeToken(i, _)                 => s"Ex $i"
-      case FigureExchange(_)                   => "Fe"
-      case Ronin(i, _)                         => s"Ro $i"
-    }
-    val color = token.playerId match {
-      case 1 => "#ff0000"
-      case 2 => "#00ff00"
-      case 3 => "#0000ff"
-      case 4 => "#cccc00"
-    }
-
-    drawHex(centerX, centerY, r, "#f9f8e5", Some(color), context)
-
-    context.fillStyle = color
-    context.font = s"${r / 2}px Arial"
-    val metrics = context.measureText(text)
-    context.fillText(text, centerX - metrics.width / 2, centerY + r / 4)
-  }
-
-  def drawFigures(
-      figures: Set[Figure],
-      centerX: Double,
-      centerY: Double,
-      hexRadius: Double,
-      context: dom.CanvasRenderingContext2D
-  ): Unit = {
-    val figCount = figures.size
-    val figSize = hexRadius * 0.3
-
-    figures.zipWithIndex.foreach {
-      case (figure, index) =>
-        val (offsetX: Double, offsetY: Double) = figCount match {
-          case 3 =>
-            val x = Math.cos(2 * index * Math.PI / 3 + Math.PI / 6) * figSize * 1.25
-            val y = Math.sin(2 * index * Math.PI / 3 + Math.PI / 6) * figSize * 1.25
-            (x, y)
-          case 2 =>
-            (index * 2 * figSize - figSize, 0.0)
-          case _ =>
-            (0.0, 0.0)
-        }
-        figure match {
-          case Figure.Buddha =>
-            drawBuddha(
-              centerX + offsetX,
-              centerY + offsetY,
-              figSize,
-              "#000",
-              context
-            )
-          case Figure.Helmet =>
-            drawCastle(
-              centerX + offsetX,
-              centerY + offsetY,
-              figSize,
-              "#000",
-              context
-            )
-          case Figure.RiceField =>
-            drawRiceField(
-              centerX + offsetX,
-              centerY + offsetY,
-              figSize,
-              "#000",
-              context
-            )
-        }
-    }
-  }
-
-  def drawRiceField(
-      centerX: Double,
-      centerY: Double,
-      r: Double,
-      colorCode: String,
-      context: dom.CanvasRenderingContext2D
-  ): Unit = drawPoly(centerX, centerY, r, 4, colorCode, context, rotation = Math.PI / 4)
-
-  def drawBuddha(
-      centerX: Double,
-      centerY: Double,
-      r: Double,
-      colorCode: String,
-      context: dom.CanvasRenderingContext2D
-  ): Unit = drawPoly(centerX, centerY, r, 5, colorCode, context, rotation = 7 * Math.PI / 10)
-
-  def drawCastle(
-      centerX: Double,
-      centerY: Double,
-      r: Double,
-      colorCode: String,
-      context: dom.CanvasRenderingContext2D
-  ): Unit = drawPoly(centerX, centerY, r, 3, colorCode, context)
-
-  def drawPoly(
-      centerX: Double,
-      centerY: Double,
-      r: Double,
-      sides: Int,
-      colorCode: String,
-      context: dom.CanvasRenderingContext2D,
-      rotation: Double = Math.PI / 6.0,
-      accentColorCode: Option[String] = None
-  ): Unit = {
-
-    accentColorCode match {
-      case Some(accent) =>
-        val gradient = context.createRadialGradient(
-          centerX,
-          centerY,
-          0.65 * r,
-          centerX,
-          centerY,
-          r * 1.5
-        )
-        gradient.addColorStop(0, colorCode)
-        gradient.addColorStop(1, accent)
-        context.fillStyle = gradient
-      case _ => context.fillStyle = colorCode
-    }
-
-    context.beginPath()
-    context.moveTo(centerX, centerY)
-
-    (0 to sides).foreach { a =>
-      val x = Math.cos(2 * a * Math.PI / sides + rotation) * r
-      val y = Math.sin(2 * a * Math.PI / sides + rotation) * r
-      context.lineTo(x + centerX, y + centerY)
-    }
-    context.closePath()
-    context.fill()
-  }
-
   def getHoveredHex(
                      mouse: CanvasPosition,
                      props: BoardDrawProps
-  ): Option[CanvasPosition] = {
+                   ): Option[MatrixPosition] = {
 
     val row = (mouse.y - props.offsetY - props.drawRect.y) / props.yStep
     val col =
@@ -481,7 +322,7 @@ object MainApp {
       else (mouse.x - props.offsetX - props.drawRect.x) / props.xStep
 
     if (props.drawRect.isInside(mouse))
-      Some(CanvasPosition(Math.round(col).toInt, Math.round(row).toInt))
+      Some(MatrixPosition(Math.round(col).toInt, Math.round(row).toInt))
     else
       None
   }
@@ -489,7 +330,7 @@ object MainApp {
   def getHoveredPlayerToken(
                              mouse: CanvasPosition,
                              props: PlayerTokenDrawProps
-  ): Option[CanvasPosition] = {
+                           ): Option[CanvasPosition] = {
 
     val row = (mouse.y - props.offsetY - props.drawRect.y) / props.yStep
     val col = (mouse.x - props.offsetX - props.drawRect.x) / props.xStep

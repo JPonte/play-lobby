@@ -8,6 +8,28 @@ case class BoardTile(tile: Tile, figures: Set[Figure], token: Option[Token])
 
 object Board {
 
+  def getNeighbours(position: MatrixPosition): Set[MatrixPosition] = {
+    if (position.row % 2 == 0) {
+      Set(
+        MatrixPosition(position.column - 1, position.row),
+        MatrixPosition(position.column + 1, position.row),
+        MatrixPosition(position.column, position.row + 1),
+        MatrixPosition(position.column + 1, position.row + 1),
+        MatrixPosition(position.column, position.row - 1),
+        MatrixPosition(position.column + 1, position.row - 1)
+      )
+    } else {
+      Set(
+        MatrixPosition(position.column - 1, position.row),
+        MatrixPosition(position.column + 1, position.row),
+        MatrixPosition(position.column, position.row + 1),
+        MatrixPosition(position.column - 1, position.row + 1),
+        MatrixPosition(position.column, position.row - 1),
+        MatrixPosition(position.column - 1, position.row - 1)
+      )
+    }
+  }
+
   type BaseBoard = SparseMatrix[Tile]
   type Board = SparseMatrix[BoardTile]
 
