@@ -11,10 +11,11 @@ POST    /validateLogin              controllers.LoginController.validateLogin
 POST    /validateRegister           controllers.LoginController.validateRegister
 GET     /logout                     controllers.LoginController.logout
 GET     /samurai                    controllers.LobbyController.samurai
-GET     /partylobby                 controllers.LobbyController.partyLobby
+GET     /partylobby/:gameId         controllers.LobbyController.partyLobby(gameId: Int)
 POST    /createGame                 controllers.LobbyController.createGame
 
 GET     /socket                     controllers.LobbyController.socket
+GET     /gameSocket/:gameId         controllers.LobbyController.gameSocket(gameId: Int)
 
 # Map static resources from the /public folder to the /assets URL path
 GET     /assets/*file               controllers.Assets.versioned(path="/public", file: Asset)

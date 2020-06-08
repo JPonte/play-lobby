@@ -9,6 +9,7 @@ object GameStatus {
   val Finished = 2
 }
 
+case class GameSettings(password: Option[String])
 case class GameInfo(gameId: Int, playerCount: Int, password: Option[String], players: Seq[Username], status: GameStatus)
 
 case class PublicGameInfo(gameId: Int, maxPlayerCount: Int, hasPassword: Boolean, playerCount: Int, status: GameStatus)
