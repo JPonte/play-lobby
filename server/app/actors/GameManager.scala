@@ -2,15 +2,15 @@ package actors
 
 import actors.GameManager._
 import akka.actor.{Actor, ActorLogging, ActorRef}
-import core.{GameInfo, GameSettings, Username}
+import core.{GameInfo, GameSettings, PublicGameInfo, Username}
 import akka.pattern.{ask, pipe}
 import akka.util.Timeout
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
 import scala.util.Random
 
-class GameManager() extends Actor with ActorLogging {
+class GameManager(lobbyManager: ActorRef) extends Actor with ActorLogging {
 
   private implicit val defaultTimeout: Timeout = Timeout(5.seconds)
   implicit val ec: ExecutionContext = context.dispatcher
@@ -24,8 +24,11 @@ class GameManager() extends Actor with ActorLogging {
       val gameActor = context.actorOf(GameActor.props(gameId, settings), s"game-$gameId")
       gameActors = gameActors + (gameId -> gameActor)
       (gameActor ? GameActor.JoinGame(creator)).pipeTo(sender())
+      //lobbyManager ! LobbyManager.GameListChanged(gameActors.keys.toSeq)
+      getAllGamesPublicInfo.map(LobbyManager.GameListChanged).pipeTo(lobbyManager)
     case GameFinished(gameId) =>
       gameActors = gameActors - gameId
+      getAllGamesPublicInfo.map(LobbyManager.GameListChanged).pipeTo(lobbyManager)
     case GameUserConnected(username, gameId, actor) =>
       val existingActors = usersMap.getOrElse(username, Set())
       usersMap = usersMap + (username -> (existingActors + actor))
@@ -34,12 +37,14 @@ class GameManager() extends Actor with ActorLogging {
         gameRef ! GameActor.UserConnected(username, actor)
       }
     case GameUserDisconnected(username, gameId, actor) =>
-      //TODO: disconnect
       val updatedActors = usersMap.get(username).map(_ - actor).getOrElse(Set.empty[ActorRef])
       if (updatedActors.isEmpty) {
         usersMap = usersMap - username
       } else {
         usersMap = usersMap + (username -> updatedActors)
+      }
+      gameActors.get(gameId).foreach { gameRef =>
+        gameRef ! GameActor.UserDisconnected(username, actor)
       }
     case GetGameInfo(gameId) =>
       gameActors.get(gameId).fold {
@@ -48,6 +53,12 @@ class GameManager() extends Actor with ActorLogging {
         (actor ? GameActor.GetGameInfo).map(Option(_)).pipeTo(sender())
       }
     case m => log.error(s"Unhandled message $m")
+  }
+
+  private def getAllGamesPublicInfo: Future[Seq[PublicGameInfo]] = {
+    Future.sequence(gameActors.values.toSeq.map(ga => (ga ? GameActor.GetGameInfo).mapTo[GameInfo])).map { infos =>
+      infos.map(PublicGameInfo(_))
+    }
   }
 }
 

@@ -1,6 +1,6 @@
 package websocket
 
-import core.Username
+import core.{PublicGameInfo, Username}
 
 sealed trait ServerWebSocketMessage
 
@@ -9,3 +9,5 @@ case class ServerPartyChatMessage(sender: Option[Username], gameId: Int, content
 
 case class ServerUpdatedLobbyUsers(userList: Seq[String]) extends ServerWebSocketMessage
 case class ServerUpdatedPartyUsers(gameId: Int, userList: Seq[String]) extends ServerWebSocketMessage
+
+case class LobbyGameList(games: Seq[PublicGameInfo]) extends ServerWebSocketMessage

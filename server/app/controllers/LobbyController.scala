@@ -26,11 +26,8 @@ class LobbyController @Inject()(val controllerComponents: ControllerComponents,
 
   private implicit val defaultTimeout: Timeout = Timeout(10.seconds)
   private val lobbyManager = system.actorOf(Props[LobbyManager], "LobbyManager")
-  private val gameManager = system.actorOf(Props[GameManager], "GameManager")
+  private val gameManager = system.actorOf(Props(classOf[GameManager], lobbyManager), "GameManager")
   //  private val gameRepository = new GameInfoRepository(db)
-  //  gameRepository.getAllWaitingGames.foreach(_.foreach { gameInfo =>
-  //    startGameActor(gameInfo.gameId)
-  //  })
 
   def index(): Action[AnyContent] = userAction.async { implicit request: UserRequest[AnyContent] =>
     (lobbyManager ? LobbyManager.RequestOnlineUserList()).map(_.asInstanceOf[Set[Username]]).map { currentUsers =>

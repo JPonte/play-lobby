@@ -1,12 +1,12 @@
 package lobby
 
-import core.Username
+import core.{PublicGameInfo, Username}
 import org.scalajs.dom
 import org.scalajs.dom.{WebSocket, document, html}
 import io.circe.generic.auto._
 import io.circe.parser._
 import io.circe.syntax._
-import websocket.{ClientLobbyChatMessage, ClientWebSocketMessage, ServerLobbyChatMessage, ServerUpdatedLobbyUsers, ServerWebSocketMessage}
+import websocket.{ClientLobbyChatMessage, ClientWebSocketMessage, LobbyGameList, ServerLobbyChatMessage, ServerUpdatedLobbyUsers, ServerWebSocketMessage}
 
 object Lobby {
   def run(): Unit = {
@@ -16,6 +16,7 @@ object Lobby {
     val socket = new WebSocket(url)
 
     val userList = document.getElementById("lobby-user-list").asInstanceOf[html.UList]
+    val gameList = document.getElementById("lobby-game-list").asInstanceOf[html.UList]
 
     val chatArea = document.getElementById("chat-area").asInstanceOf[html.Div]
     val inputField = document.getElementById("lobby-message-input").asInstanceOf[html.Input]
@@ -39,6 +40,12 @@ object Lobby {
           userList.innerHTML = ""
           users.foreach { user =>
             userList.innerHTML += s"<li>$user</li>"
+          }
+        case Right(LobbyGameList(games)) =>
+          println(games)
+          gameList.innerHTML = ""
+          games.foreach { case PublicGameInfo(gameId, maxPlayerCount, hasPassword, playerCount, status) =>
+            gameList.innerHTML += s"<li>$gameId\t$playerCount/$maxPlayerCount\tPassword: $hasPassword\t$status\t<button>Join</button></li>"
           }
         case x => println(s"Couldn't handle $x")
       }

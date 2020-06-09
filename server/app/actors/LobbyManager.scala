@@ -3,7 +3,7 @@ package actors
 import actors.LobbyManager._
 import akka.actor.{Actor, ActorRef}
 import akka.pattern.pipe
-import core.Username
+import core.{PublicGameInfo, Username}
 import websocket._
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -39,6 +39,8 @@ class LobbyManager extends Actor {
       usersMap.values.flatten.foreach(_ ! WebSocketActor.SendToClient(ServerLobbyChatMessage(Some(sender), content)))
     case InternalLobbyMessage(message) =>
       usersMap.values.flatten.foreach(_ ! WebSocketActor.SendToClient(message))
+    case GameListChanged(games) =>
+      usersMap.values.flatten.foreach(_ ! WebSocketActor.SendToClient(LobbyGameList(games)))
     case m => println(s"Unknown message sent to LobbyManager $m")
   }
 }
@@ -52,4 +54,6 @@ object LobbyManager {
   case class InternalLobbyMessage(message: ServerWebSocketMessage)
   case class InternalPartyMessage(gameId: Int, message: ServerWebSocketMessage)
   case class PartyChatMessage(gameId: Int, sender: Username, content: String, recipients: Seq[Username])
+
+  case class GameListChanged(games: Seq[PublicGameInfo])
 }

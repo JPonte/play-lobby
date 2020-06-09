@@ -16,5 +16,5 @@ case class PublicGameInfo(gameId: Int, maxPlayerCount: Int, hasPassword: Boolean
 
 object PublicGameInfo {
   def apply(gameInfo: GameInfo): PublicGameInfo =
-    new PublicGameInfo(gameInfo.gameId, gameInfo.playerCount, gameInfo.password.nonEmpty, gameInfo.playerCount, gameInfo.status)
+    new PublicGameInfo(gameInfo.gameId, gameInfo.playerCount, gameInfo.password.nonEmpty, gameInfo.players.size, gameInfo.status)
 }
