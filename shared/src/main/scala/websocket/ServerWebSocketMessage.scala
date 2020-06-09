@@ -11,3 +11,4 @@ case class ServerUpdatedLobbyUsers(userList: Seq[String]) extends ServerWebSocke
 case class ServerUpdatedPartyUsers(gameId: Int, userList: Seq[String]) extends ServerWebSocketMessage
 
 case class LobbyGameList(games: Seq[PublicGameInfo]) extends ServerWebSocketMessage
+case class InvalidGameMove(message: String) extends ServerWebSocketMessage

@@ -1,11 +1,13 @@
 package samurai
 
+import core.Username
 import samurai.Board.Board
 import samurai.Figure.Figure
 import samurai.GameState._
 import samurai.PlayerState._
 
 import scala.annotation.tailrec
+import scala.util.Random
 
 case class PlayerState(playerId: Int, tokens: Seq[Token], deck: Seq[Token], figureDeck: FigureDeck) {
   def drawTokens(count: Int): PlayerState = {
@@ -26,7 +28,7 @@ object PlayerState {
   type PlayerId = Int
 }
 
-case class GameState(board: Board, players: Map[Int, PlayerState], figuresDeck: FigureDeck, currentPlayer: Int, fullTokensPlayed: Int) {
+case class GameState(board: Board, players: Map[PlayerId, PlayerState], figuresDeck: FigureDeck, currentPlayer: PlayerId, fullTokensPlayed: Boolean, characterTokensPlayed: Boolean) {
 
   def getGamePhase: GamePhase = {
     if (figuresDeck.nonEmpty) FigurePlacementPhase
@@ -49,18 +51,18 @@ case class GameState(board: Board, players: Map[Int, PlayerState], figuresDeck: 
       case AddToken(`currentPlayer`, tokenIndex, location) if getGamePhase == TokenPlacementPhase && players(currentPlayer).tokens.size > tokenIndex =>
         val playerState = players(currentPlayer)
         val token = playerState.tokens(tokenIndex)
-        val fullTokensAdd = if (token.isInstanceOf[CharacterToken]) 0 else 1
+        val fullTokensAdd = !token.isInstanceOf[CharacterToken]
         val newPlayerState = playerState.copy(tokens = playerState.tokens.zipWithIndex.filter(_._2 != tokenIndex).map(_._1))
         board.get(location) match {
           case Some(bt@BoardTile(Tile.Land, _, None)) if !token.isInstanceOf[Ship] =>
-            Some(copy(board = board + (location -> bt.copy(token = Some(token))), fullTokensPlayed = fullTokensPlayed + fullTokensAdd, players = players + (currentPlayer -> newPlayerState)).resolveCapture)
+            Some(copy(board = board + (location -> bt.copy(token = Some(token))), fullTokensPlayed = fullTokensPlayed || fullTokensAdd, characterTokensPlayed = characterTokensPlayed || !fullTokensAdd, players = players + (currentPlayer -> newPlayerState)).resolveCapture)
           case Some(bt@BoardTile(Tile.Sea, _, None)) if token.isInstanceOf[Ship] =>
-            Some(copy(board = board + (location -> bt.copy(token = Some(token))), fullTokensPlayed = fullTokensPlayed + fullTokensAdd, players = players + (currentPlayer -> newPlayerState)).resolveCapture)
+            Some(copy(board = board + (location -> bt.copy(token = Some(token))), fullTokensPlayed = fullTokensPlayed || fullTokensAdd, characterTokensPlayed = characterTokensPlayed || !fullTokensAdd, players = players + (currentPlayer -> newPlayerState)).resolveCapture)
           case _ => None
         }
 
-      case EndTurn(`currentPlayer`) if fullTokensPlayed > 0 =>
-        Some(copy(currentPlayer = (currentPlayer + 1) % 2, fullTokensPlayed = 0))
+      case EndTurn(`currentPlayer`) if fullTokensPlayed || characterTokensPlayed =>
+        Some(copy(currentPlayer = (currentPlayer + 1) % 2, fullTokensPlayed = false, characterTokensPlayed = false))
       case _ =>
         None
     }
@@ -118,4 +120,69 @@ object GameState {
   val FigurePlacementPhase = 0
   val TokenPlacementPhase = 1
   val Finished = 2
+
+  def initialGameState(players: Seq[Username], addFiguresAuto: Boolean = false): GameState = {
+
+    val playerStates = players.zipWithIndex.map { case (_, i) =>
+
+      val tokens = Seq(
+        FigureToken(Figure.RiceField, 2, i),
+        FigureToken(Figure.RiceField, 3, i),
+        FigureToken(Figure.RiceField, 4, i),
+        FigureToken(Figure.Helmet, 2, i),
+        FigureToken(Figure.Helmet, 3, i),
+        FigureToken(Figure.Helmet, 4, i),
+        FigureToken(Figure.Buddha, 2, i),
+        FigureToken(Figure.Buddha, 3, i),
+        FigureToken(Figure.Buddha, 4, i),
+        SamuraiToken(1, i),
+        SamuraiToken(1, i),
+        SamuraiToken(2, i),
+        SamuraiToken(2, i),
+        SamuraiToken(3, i),
+        Ronin(1, i),
+        Ship(1, i),
+        Ship(1, i),
+        Ship(2, i),
+      )
+
+      i -> PlayerState(i, Seq(), tokens, FigureDeck(0, 0, 0))
+    }.toMap
+
+    val board = Board.twoPlayerBoard.map {
+      case (coords, t) =>
+        val figures = if (t == Tile.Edo) {
+          Set(Figure.Buddha, Figure.Helmet, Figure.RiceField)
+        } else {
+          Set.empty[Figure]
+        }
+        coords -> BoardTile(t, figures, None)
+    }
+
+    var gameState = GameState(board, playerStates, FigureDeck(6, 6, 6), 0, fullTokensPlayed = false, characterTokensPlayed = false)
+
+    if (addFiguresAuto) {
+      while(gameState.figuresDeck.nonEmpty) {
+        val unsetCities = gameState.board.filter {
+          case (_, BoardTile(Tile.City, figures, _)) => figures.size < 2
+          case _ => false
+        }
+        val unsetVillages = gameState.board.filter {
+          case (_, BoardTile(Tile.Village, figures, _)) => figures.isEmpty
+          case _ => false
+        }
+        val unsetTiles = if (unsetCities.nonEmpty) unsetCities else unsetVillages
+        val tileIndex = Random.nextInt(unsetTiles.size)
+        val tile = unsetTiles.toSeq(tileIndex)
+
+        val availableFigures = gameState.figuresDeck.availableFigures -- tile._2.figures
+        val figureIndex = Random.nextInt(availableFigures.size)
+        val figure = availableFigures.toSeq(figureIndex)
+
+        val gameMove = AddFigure(gameState.currentPlayer, figure, tile._1)
+        gameState.play(gameMove).foreach(gameState = _)
+      }
+    }
+    gameState
+  }
 }

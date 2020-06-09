@@ -102,7 +102,7 @@ object MainApp {
     )
 
     val selfPlayerId = 0
-    var gameState = GameState(board = board, Map(0 -> PlayerState(0, playerTokens, Seq(), FigureDeck(0, 0, 0))), FigureDeck(6, 6, 6), 0, 0)
+    var gameState = GameState(board = board, Map(0 -> PlayerState(0, playerTokens, Seq(), FigureDeck(0, 0, 0))), FigureDeck(6, 6, 6), 0, fullTokensPlayed = false, characterTokensPlayed = false)
 
     while(gameState.figuresDeck.nonEmpty) {
       val unsetCities = gameState.board.filter {
