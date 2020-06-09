@@ -1,14 +1,9 @@
 package actors
 
 import actors.GameActor._
-import actors.GameManager.UserJoinedGame
-import actors.LobbyManager.PartyChatMessage
-import akka.actor.{Actor, ActorLogging, ActorRef, PoisonPill, Props}
+import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import core.{GameInfo, GameSettings, GameStatus, Username}
-import models.GameInfoRepository
-import websocket.{ClientPartyChatMessage, GameMessage, ServerPartyChatMessage, ServerUpdatedPartyUsers}
-
-import scala.concurrent.ExecutionContextExecutor
+import websocket.{ClientPartyChatMessage, GameMessage, ServerPartyChatMessage}
 
 class GameActor(gameId: Int, settings: GameSettings) extends Actor with ActorLogging {
 
@@ -24,6 +19,7 @@ class GameActor(gameId: Int, settings: GameSettings) extends Actor with ActorLog
       log.debug(s"User $username joined the game #$gameId")
     case LeaveGame(username) =>
       gameInfo = gameInfo.copy(players = gameInfo.players.filter(_ != username))
+      sender() ! true
       log.debug(s"User $username left the game #$gameId")
     case UserConnected(username, actor) =>
       if (gameInfo.players.contains(username)) {

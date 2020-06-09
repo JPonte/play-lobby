@@ -22,7 +22,7 @@ class WebSocketActor(username: Username, out: ActorRef, lobbyManager: ActorRef) 
       }
     case SendToClient(message) => out ! message.asJson.spaces2
     case m =>
-      println(s"Unhandled message: $m")
+      log.error(s"Unhandled message: $m")
   }
 
   override def postStop(): Unit = {

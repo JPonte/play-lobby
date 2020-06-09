@@ -45,7 +45,13 @@ object Lobby {
           println(games)
           gameList.innerHTML = ""
           games.foreach { case PublicGameInfo(gameId, maxPlayerCount, hasPassword, playerCount, status) =>
-            gameList.innerHTML += s"<li>$gameId\t$playerCount/$maxPlayerCount\tPassword: $hasPassword\t$status\t<button>Join</button></li>"
+            val btn = document.createElement("button").asInstanceOf[html.Button]
+            btn.onclick = { e =>
+              document.location.href = s"/joinGame?gameId=$gameId"
+            }
+            btn.innerText = "Join"
+            gameList.innerHTML += s"<li>$gameId\t$playerCount/$maxPlayerCount\tPassword: $hasPassword\t$status\t</li>"
+            gameList.appendChild(btn)
           }
         case x => println(s"Couldn't handle $x")
       }

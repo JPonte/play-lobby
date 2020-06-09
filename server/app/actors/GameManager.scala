@@ -10,7 +10,7 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
 import scala.util.Random
 
-class GameManager(lobbyManager: ActorRef) extends Actor with ActorLogging {
+class GameManager extends Actor with ActorLogging {
 
   private implicit val defaultTimeout: Timeout = Timeout(5.seconds)
   implicit val ec: ExecutionContext = context.dispatcher
@@ -24,11 +24,8 @@ class GameManager(lobbyManager: ActorRef) extends Actor with ActorLogging {
       val gameActor = context.actorOf(GameActor.props(gameId, settings), s"game-$gameId")
       gameActors = gameActors + (gameId -> gameActor)
       (gameActor ? GameActor.JoinGame(creator)).pipeTo(sender())
-      //lobbyManager ! LobbyManager.GameListChanged(gameActors.keys.toSeq)
-      getAllGamesPublicInfo.map(LobbyManager.GameListChanged).pipeTo(lobbyManager)
     case GameFinished(gameId) =>
       gameActors = gameActors - gameId
-      getAllGamesPublicInfo.map(LobbyManager.GameListChanged).pipeTo(lobbyManager)
     case GameUserConnected(username, gameId, actor) =>
       val existingActors = usersMap.getOrElse(username, Set())
       usersMap = usersMap + (username -> (existingActors + actor))
@@ -52,13 +49,31 @@ class GameManager(lobbyManager: ActorRef) extends Actor with ActorLogging {
       } { actor =>
         (actor ? GameActor.GetGameInfo).map(Option(_)).pipeTo(sender())
       }
+    case GetGamesForUser(username) =>
+      findGamesForUser(username).pipeTo(sender())
+    case RequestJoinGame(username, gameId) =>
+      gameActors.get(gameId) match {
+        case Some(gameRef) => (gameRef ? GameActor.JoinGame(username)).mapTo[Int].map(Option(_)).pipeTo(sender())
+        case _ => sender() ! Option.empty[Int]
+      }
+    case RequestLeaveGame(username, gameId) =>
+      gameActors.get(gameId) match {
+        case Some(gameRef) => (gameRef ? GameActor.LeaveGame(username)).mapTo[Boolean].pipeTo(sender())
+        case _ => sender() ! false
+      }
+    case GetGames =>
+      getAllGamesInfo.pipeTo(sender())
     case m => log.error(s"Unhandled message $m")
   }
 
-  private def getAllGamesPublicInfo: Future[Seq[PublicGameInfo]] = {
-    Future.sequence(gameActors.values.toSeq.map(ga => (ga ? GameActor.GetGameInfo).mapTo[GameInfo])).map { infos =>
-      infos.map(PublicGameInfo(_))
-    }
+  private def getAllGamesInfo: Future[Seq[GameInfo]] = {
+    Future.sequence(gameActors.values.toSeq.map(ga => (ga ? GameActor.GetGameInfo).mapTo[GameInfo]))
+  }
+
+  private def getAllGamesPublicInfo: Future[Seq[PublicGameInfo]] = getAllGamesInfo.map(_.map(PublicGameInfo(_)))
+
+  private def findGamesForUser(username: Username): Future[Seq[GameInfo]] = {
+    getAllGamesInfo.map(_.filter(_.players.contains(username)))
   }
 }
 
@@ -72,10 +87,13 @@ object GameManager {
 
   case class GameUserDisconnected(username: Username, gameId: Int, actor: ActorRef)
 
-  case class UserJoinedGame(username: Username, gameId: Int)
+  case class RequestJoinGame(username: Username, gameId: Int)
 
-  case class UserLeftGame(username: Username, gameId: Int)
+  case class RequestLeaveGame(username: Username, gameId: Int)
 
   case class GetGameInfo(gameId: Int)
 
+  case object GetGames
+
+  case class GetGamesForUser(username: Username)
 }
