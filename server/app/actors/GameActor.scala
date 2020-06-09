@@ -33,8 +33,10 @@ class GameActor(gameId: Int, settings: GameSettings) extends Actor with ActorLog
         gameInfo = gameInfo.copy(status = GameStatus.Running)
         gameState = Some(GameState.initialGameState(gameInfo.players))
         notifyGameStateChanged()
+        sender() ! true
       } else {
         log.error(s"Invalid attempt to start the game on $gameInfo")
+        sender() ! false
       }
     case UserConnected(username, actor) =>
       if (gameInfo.players.contains(username)) {

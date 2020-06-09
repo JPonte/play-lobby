@@ -61,10 +61,15 @@ class LobbyController @Inject()(val controllerComponents: ControllerComponents,
     })
   }
 
-  def samurai(): Action[AnyContent] = userAction { implicit request: UserRequest[AnyContent] =>
-    request.username.fold(Redirect(routes.LoginController.login())) { _ =>
-      val webSocketUrl = routes.LobbyController.gameSocket(0).webSocketURL()
-      Ok(views.html.samurai(webSocketUrl))
+  def samurai(gameId: Int): Action[AnyContent] = userAction.async { implicit request: UserRequest[AnyContent] =>
+    request.username.fold(Future.successful(Redirect(routes.LoginController.login()))) { username =>
+      (gameManager ? GameManager.GetGameInfo(gameId)).map {
+        case Some(GameInfo(gameId, _, _, players, _)) if players.contains(username) =>
+          val webSocketUrl = routes.LobbyController.gameSocket(gameId).webSocketURL()
+          Ok(views.html.samurai(webSocketUrl))
+        case _ =>
+          Redirect(routes.LobbyController.partyLobby(gameId)).flashing("error" -> "Couldn't start the game")
+      }
     }
   }
 
@@ -115,4 +120,19 @@ class LobbyController @Inject()(val controllerComponents: ControllerComponents,
     }
   }
 
+  def startGame(gameId: Int): Action[AnyContent] = userAction.async { implicit request: UserRequest[AnyContent] =>
+    request.username.fold(Future.successful(Redirect(routes.LoginController.login()))) { username =>
+      (gameManager ? GameManager.GetGameInfo(gameId)).flatMap {
+        case Some(GameInfo(gameId, playerCount, _, players, _)) if players.contains(username) && players.size == playerCount =>
+          (gameManager ? GameManager.RequestStartGame(gameId)).mapTo[Boolean].map {
+            case true =>
+              Redirect(routes.LobbyController.samurai(gameId))
+            case false =>
+              Redirect(routes.LobbyController.partyLobby(gameId)).flashing("error" -> "Couldn't start the game")
+          }
+        case _ =>
+          Future.successful(Redirect(routes.LobbyController.partyLobby(gameId)).flashing("error" -> "Couldn't start the game"))
+      }
+    }
+  }
 }

@@ -3,17 +3,17 @@
 # https://www.playframework.com/documentation/latest/ScalaRouting
 # ~~~~
 
-# An example controller showing a sample home page
 GET     /                           controllers.LobbyController.index
 GET     /login                      controllers.LoginController.login
 GET     /register                   controllers.LoginController.register
 POST    /validateLogin              controllers.LoginController.validateLogin
 POST    /validateRegister           controllers.LoginController.validateRegister
 GET     /logout                     controllers.LoginController.logout
-GET     /samurai                    controllers.LobbyController.samurai
+GET     /samurai                    controllers.LobbyController.samurai(gameId: Int)
 GET     /partylobby/:gameId         controllers.LobbyController.partyLobby(gameId: Int)
 POST    /createGame                 controllers.LobbyController.createGame
 GET     /joinGame                   controllers.LobbyController.joinGame(gameId: Int, password: Option[String])
+GET     /startGame                  controllers.LobbyController.startGame(gameId: Int)
 
 GET     /socket                     controllers.LobbyController.socket
 GET     /gameSocket/:gameId         controllers.LobbyController.gameSocket(gameId: Int)

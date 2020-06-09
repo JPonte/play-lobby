@@ -63,6 +63,11 @@ class GameManager extends Actor with ActorLogging {
       }
     case GetGames =>
       getAllGamesInfo.pipeTo(sender())
+    case RequestStartGame(gameId) =>
+      gameActors.get(gameId) match {
+        case Some(actor) => (actor ? GameActor.StartGame).pipeTo(sender())
+        case _ => sender() ! false
+      }
     case m => log.error(s"Unhandled message $m")
   }
 
@@ -90,6 +95,8 @@ object GameManager {
   case class RequestJoinGame(username: Username, gameId: Int)
 
   case class RequestLeaveGame(username: Username, gameId: Int)
+
+  case class RequestStartGame(gameId: Int)
 
   case class GetGameInfo(gameId: Int)
 
