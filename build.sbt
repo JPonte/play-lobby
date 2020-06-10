@@ -23,7 +23,7 @@ lazy val server = (project in file("server")).settings(
     "io.circe" %% "circe-parser" % circeVersion,
     "org.scalatestplus.play" %% "scalatestplus-play" % "5.0.0" % Test
   )
-).enablePlugins(PlayScala).dependsOn(shared.jvm)
+).enablePlugins(PlayScala, JavaAppPackaging).dependsOn(shared.jvm)
 
 lazy val samurai = (project in file("samurai-scalajs")).settings(
   commonSettings,

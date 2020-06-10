@@ -1,4 +1,4 @@
-@(webSocketUrl: String)(implicit flash: Flash)
+@(webSocketUrl: String, username: String)(implicit flash: Flash)
 
 @main("Samurai") {
 <div>
@@ -6,5 +6,6 @@
 </div>
 <canvas id="main-canvas"></canvas>
 <input type="hidden" id="data-url" value="@webSocketUrl">
+<input type="hidden" id="username" value="@username">
 @scalajs.html.scripts("samurai-client", routes.Assets.versioned(_).toString, name => getClass.getResource(s"/public/$name") != null)
 }

@@ -1,6 +1,6 @@
 package websocket
 
-import core.{PublicGameInfo, Username}
+import core.{GameInfo, PublicGameInfo, Username}
 import samurai.GameState
 
 sealed trait ServerWebSocketMessage
@@ -14,4 +14,4 @@ case class ServerUpdatedPartyUsers(gameId: Int, userList: Seq[String]) extends S
 case class LobbyGameList(games: Seq[PublicGameInfo]) extends ServerWebSocketMessage
 case class InvalidGameMove(message: String) extends ServerWebSocketMessage
 
-case class UpdatedGameState(gameId: Int, gameState: Option[GameState]) extends ServerWebSocketMessage
+case class UpdatedGameState(gameInfo: GameInfo, gameState: Option[GameState]) extends ServerWebSocketMessage

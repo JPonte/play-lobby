@@ -78,7 +78,7 @@ class GameActor(gameId: Int, settings: GameSettings) extends Actor with ActorLog
           notifyClient(username, InvalidGameMove("Game hasn't started yet."))
       }
     case ProcessGameMessage(username, ClientRequestGameState) =>
-      notifyClient(username, UpdatedGameState(gameId, gameState))
+      notifyClient(username, UpdatedGameState(gameInfo, gameState))
     case GetGameInfo =>
       sender() ! gameInfo
     case _ =>
@@ -94,7 +94,7 @@ class GameActor(gameId: Int, settings: GameSettings) extends Actor with ActorLog
     notifyAllClients(ServerUpdatedPartyUsers(gameId, gameInfo.players.map(_.value)))
 
   def notifyGameStateChanged(): Unit =
-    notifyAllClients(UpdatedGameState(gameId, gameState))
+    notifyAllClients(UpdatedGameState(gameInfo, gameState))
 }
 
 object GameActor {

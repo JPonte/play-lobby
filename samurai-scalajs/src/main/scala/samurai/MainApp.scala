@@ -1,5 +1,6 @@
 package samurai
 
+import core.{GameInfo, GameStatus, Username}
 import utils._
 import io.circe._
 import io.circe.generic.auto._
@@ -64,6 +65,7 @@ object MainApp {
       canvas.getContext("2d").asInstanceOf[dom.CanvasRenderingContext2D]
 
     var socket = Option.empty[WebSocket]
+    val username = Username(document.getElementById("username").asInstanceOf[html.Input].value)
 
     try {
       val url = document.getElementById("data-url").asInstanceOf[html.Input].value
@@ -81,50 +83,20 @@ object MainApp {
       canvas.height = dom.window.innerHeight.toInt
     }
 
-    //STUB
-    val board = twoPlayerBoard.map {
-      case (coords, t) =>
-        val inf = new Random().nextInt(3) + 1
-        val playerId = new Random().nextInt(4) + 0
-        val setTile = new Random().nextInt(4) > 2
+    var gameState = GameState.initialGameState(Seq(Username("Aonte"), Username("Bonte")), addFiguresAuto = true)
+    var gameInfo = GameInfo(0, 2, None, Seq(Username("Aonte"), Username("Bonte")), GameStatus.Running)
 
-        val token = None
-        if (t == Tile.Land && setTile)
-          Some(Ronin(inf, playerId))
-        else if (t == Tile.Sea && setTile)
-          Some(Ship(inf, playerId))
-        else
-          None
-
-        val figures: Set[Figure] = if (t == Tile.Edo) {
-            Set(
-              Figure.RiceField,
-              Figure.Helmet,
-              Figure.Buddha
-            )
-          }
-          else {
-            Set()
-          }
-
-        coords -> BoardTile(t, figures, token)
+    def selfPlayerId = {
+      val i = gameInfo.players.indexOf(username)
+      if (i < 0) 0 else i
     }
-    val playerTokens = Seq(
-      SamuraiToken(1, 0),
-      SamuraiToken(1, 1),
-      SamuraiToken(2, 2),
-      SamuraiToken(3, 3),
-      //      FigureToken(Figure.RiceField, 3, 0)
-    )
-
-    val selfPlayerId = 0
-    var gameState = GameState(board = board, Map(0 -> PlayerState(0, playerTokens, Seq(), FigureDeck(0, 0, 0))), FigureDeck(6, 6, 6), 0, fullTokensPlayed = false, characterTokensPlayed = false)
 
     socket.foreach(_.onmessage = { event =>
       val jsonData = decode[ServerWebSocketMessage](event.data.toString)
       jsonData match {
-        case Right(UpdatedGameState(gameId, Some(state))) =>
+        case Right(UpdatedGameState(gi, Some(state))) =>
           gameState = state
+          gameInfo = gi
         case m => println(s"Couldn't process $m")
       }
     })
@@ -133,7 +105,7 @@ object MainApp {
       s.send(ClientRequestGameState.asInstanceOf[ClientWebSocketMessage].asJson.noSpaces)
     })
 
-    while(gameState.figuresDeck.nonEmpty) {
+    while (gameState.figuresDeck.nonEmpty) {
       val unsetCities = gameState.board.filter {
         case (_, BoardTile(Tile.City, figures, _)) => figures.size < 2
         case _ => false
@@ -222,8 +194,7 @@ object MainApp {
 
       clickPosition.flatMap(getHoveredHex(_, boardDrawProps)).foreach { click =>
         selectedToken.foreach { st =>
-          //TODO: playerId
-          socket.foreach(s => s.send(ClientSamuraiGameMove(AddToken(0, st, click)).asInstanceOf[ClientWebSocketMessage].asJson.noSpaces))
+          socket.foreach(s => s.send(ClientSamuraiGameMove(AddToken(selfPlayerId, st, click)).asInstanceOf[ClientWebSocketMessage].asJson.noSpaces))
         }
       }
 

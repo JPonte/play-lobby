@@ -54,7 +54,7 @@ case class GameState(board: Board, players: Map[PlayerId, PlayerState], figuresD
         val fullTokensAdd = !token.isInstanceOf[CharacterToken]
         val newPlayerState = playerState.copy(tokens = playerState.tokens.zipWithIndex.filter(_._2 != tokenIndex).map(_._1))
         board.get(location) match {
-          case Some(bt@BoardTile(Tile.Land, _, None)) if !token.isInstanceOf[Ship] =>
+          case Some(bt@BoardTile(Tile.Land, _, None)) if !token.isInstanceOf[Ship] && !(fullTokensAdd && fullTokensPlayed) =>
             Some(copy(board = board + (location -> bt.copy(token = Some(token))), fullTokensPlayed = fullTokensPlayed || fullTokensAdd, characterTokensPlayed = characterTokensPlayed || !fullTokensAdd, players = players + (currentPlayer -> newPlayerState)).resolveCapture)
           case Some(bt@BoardTile(Tile.Sea, _, None)) if token.isInstanceOf[Ship] =>
             Some(copy(board = board + (location -> bt.copy(token = Some(token))), fullTokensPlayed = fullTokensPlayed || fullTokensAdd, characterTokensPlayed = characterTokensPlayed || !fullTokensAdd, players = players + (currentPlayer -> newPlayerState)).resolveCapture)
