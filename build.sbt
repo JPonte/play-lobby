@@ -56,7 +56,12 @@ lazy val shared = crossProject(JSPlatform, JVMPlatform)
   .in(file("shared")).
   settings(
     commonSettings,
-    name := "Shared"
+    name := "Shared",
+    libraryDependencies ++= Seq(
+      "io.circe" %% "circe-core" % circeVersion,
+      "io.circe" %% "circe-generic" % circeVersion,
+      "io.circe" %% "circe-parser" % circeVersion,
+    )
   )
 
 onLoad in Global := (onLoad in Global).value andThen { s: State => "project server" :: s }

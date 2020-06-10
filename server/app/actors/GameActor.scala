@@ -5,7 +5,7 @@ import actors.GameWebSocketActor.SendToClient
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import core.{GameInfo, GameSettings, GameStatus, Username}
 import samurai.GameState
-import websocket.{ClientPartyChatMessage, ClientSamuraiGameMove, GameMessage, InvalidGameMove, ServerPartyChatMessage, ServerUpdatedPartyUsers, ServerWebSocketMessage}
+import websocket.{ClientPartyChatMessage, ClientRequestGameState, ClientSamuraiGameMove, GameMessage, InvalidGameMove, ServerPartyChatMessage, ServerUpdatedPartyUsers, ServerWebSocketMessage, UpdatedGameState}
 
 class GameActor(gameId: Int, settings: GameSettings) extends Actor with ActorLogging {
 
@@ -31,7 +31,7 @@ class GameActor(gameId: Int, settings: GameSettings) extends Actor with ActorLog
     case StartGame =>
       if (gameInfo.status == GameStatus.WaitingToStart && gameInfo.players.size == gameInfo.playerCount) {
         gameInfo = gameInfo.copy(status = GameStatus.Running)
-        gameState = Some(GameState.initialGameState(gameInfo.players))
+        gameState = Some(GameState.initialGameState(gameInfo.players, addFiguresAuto = true))
         notifyGameStateChanged()
         sender() ! true
       } else {
@@ -77,6 +77,8 @@ class GameActor(gameId: Int, settings: GameSettings) extends Actor with ActorLog
           log.error("Game move before game has started")
           notifyClient(username, InvalidGameMove("Game hasn't started yet."))
       }
+    case ProcessGameMessage(username, ClientRequestGameState) =>
+      notifyClient(username, UpdatedGameState(gameId, gameState))
     case GetGameInfo =>
       sender() ! gameInfo
     case _ =>
@@ -92,7 +94,7 @@ class GameActor(gameId: Int, settings: GameSettings) extends Actor with ActorLog
     notifyAllClients(ServerUpdatedPartyUsers(gameId, gameInfo.players.map(_.value)))
 
   def notifyGameStateChanged(): Unit =
-    notifyAllClients(ServerUpdatedPartyUsers(gameId, gameInfo.players.map(_.value)))
+    notifyAllClients(UpdatedGameState(gameId, gameState))
 }
 
 object GameActor {

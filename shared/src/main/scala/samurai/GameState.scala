@@ -125,7 +125,7 @@ object GameState {
 
     val playerStates = players.zipWithIndex.map { case (_, i) =>
 
-      val tokens = Seq(
+      var tokens: Seq[Token] = Seq(
         FigureToken(Figure.RiceField, 2, i),
         FigureToken(Figure.RiceField, 3, i),
         FigureToken(Figure.RiceField, 4, i),
@@ -145,8 +145,16 @@ object GameState {
         Ship(1, i),
         Ship(2, i),
       )
+      var hand = Seq.empty[Token]
 
-      i -> PlayerState(i, Seq(), tokens, FigureDeck(0, 0, 0))
+      //TODO: shuffle?
+      (0 until 5).foreach{ i =>
+        val randomIndex = Random.nextInt(tokens.size)
+        hand ++= Seq(tokens(randomIndex))
+        tokens = (tokens.take(randomIndex) ++ tokens.takeRight(tokens.size - randomIndex - 1))
+      }
+
+      i -> PlayerState(i, hand, tokens, FigureDeck(0, 0, 0))
     }.toMap
 
     val board = Board.twoPlayerBoard.map {

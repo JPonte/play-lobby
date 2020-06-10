@@ -1,11 +1,17 @@
 package samurai
 
+import utils._
+import io.circe._
+import io.circe.generic.auto._
+import io.circe.parser._
+import io.circe.syntax._
+import io.circe.parser.decode
 import org.scalajs.dom
-import org.scalajs.dom.{document, html}
+import org.scalajs.dom.{WebSocket, document, html}
 import samurai.Board._
 import samurai.Figure._
 import samurai.draw._
-import utils.MatrixPosition
+import websocket.{ClientRequestGameState, ClientSamuraiGameMove, ClientWebSocketMessage, ServerWebSocketMessage, UpdatedGameState}
 
 import scala.util.Random
 
@@ -57,6 +63,16 @@ object MainApp {
     val context =
       canvas.getContext("2d").asInstanceOf[dom.CanvasRenderingContext2D]
 
+    var socket = Option.empty[WebSocket]
+
+    try {
+      val url = document.getElementById("data-url").asInstanceOf[html.Input].value
+
+      socket = Some(new WebSocket(url))
+    } catch {
+      case e: Throwable => println("Couldn't start socket")
+    }
+
     canvas.width = dom.window.innerWidth.toInt
     canvas.height = dom.window.innerHeight.toInt
 
@@ -103,6 +119,19 @@ object MainApp {
 
     val selfPlayerId = 0
     var gameState = GameState(board = board, Map(0 -> PlayerState(0, playerTokens, Seq(), FigureDeck(0, 0, 0))), FigureDeck(6, 6, 6), 0, fullTokensPlayed = false, characterTokensPlayed = false)
+
+    socket.foreach(_.onmessage = { event =>
+      val jsonData = decode[ServerWebSocketMessage](event.data.toString)
+      jsonData match {
+        case Right(UpdatedGameState(gameId, Some(state))) =>
+          gameState = state
+        case m => println(s"Couldn't process $m")
+      }
+    })
+
+    socket.foreach(s => s.onopen = { event =>
+      s.send(ClientRequestGameState.asInstanceOf[ClientWebSocketMessage].asJson.noSpaces)
+    })
 
     while(gameState.figuresDeck.nonEmpty) {
       val unsetCities = gameState.board.filter {
@@ -193,7 +222,8 @@ object MainApp {
 
       clickPosition.flatMap(getHoveredHex(_, boardDrawProps)).foreach { click =>
         selectedToken.foreach { st =>
-          gameState.play(AddToken(0, st, click)).foreach(gameState = _)
+          //TODO: playerId
+          socket.foreach(s => s.send(ClientSamuraiGameMove(AddToken(0, st, click)).asInstanceOf[ClientWebSocketMessage].asJson.noSpaces))
         }
       }
 

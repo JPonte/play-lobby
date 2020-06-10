@@ -35,6 +35,8 @@ object Party {
           users.foreach { user =>
             userList.innerHTML += s"<div class='waiting-player'>$user</div>"
           }
+        case Right(UpdatedGameState(gameId, Some(gameState))) =>
+          document.location.href = s"/samurai?gameId=$gameId"
         case x => println(s"Couldn't handle $x")
       }
     }

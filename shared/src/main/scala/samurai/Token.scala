@@ -3,13 +3,13 @@ package samurai
 import samurai.Figure._
 import samurai.PlayerState.PlayerId
 
-trait Token {
+sealed trait Token {
     def playerId: PlayerId
 }
-trait InfluenceToken { 
+sealed trait InfluenceToken {
     def influence: Int
 }
-trait CharacterToken
+sealed trait CharacterToken
 
 case class FigureToken(figure: Figure, influence: Int, playerId: PlayerId) extends Token with InfluenceToken
 case class SamuraiToken(influence: Int, playerId: PlayerId) extends Token with InfluenceToken
