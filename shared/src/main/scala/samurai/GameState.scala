@@ -62,7 +62,11 @@ case class GameState(board: Board, players: Map[PlayerId, PlayerState], figuresD
         }
 
       case EndTurn(`currentPlayer`) if fullTokensPlayed || characterTokensPlayed =>
-        Some(copy(currentPlayer = (currentPlayer + 1) % 2, fullTokensPlayed = false, characterTokensPlayed = false))
+        val playerState = players(currentPlayer)
+        val tokensToDraw = 5 - playerState.tokens.size
+        val (newDeck, extraHand) = pickRandomN(playerState.deck, tokensToDraw)
+        val newPlayerState = playerState.copy(tokens = playerState.tokens ++ extraHand, deck = newDeck)
+        Some(copy(currentPlayer = (currentPlayer + 1) % 2, fullTokensPlayed = false, characterTokensPlayed = false, players = players + (newPlayerState.playerId -> newPlayerState)))
       case _ =>
         None
     }
@@ -145,14 +149,9 @@ object GameState {
         Ship(1, i),
         Ship(2, i),
       )
-      var hand = Seq.empty[Token]
 
-      //TODO: shuffle?
-      (0 until 5).foreach{ i =>
-        val randomIndex = Random.nextInt(tokens.size)
-        hand ++= Seq(tokens(randomIndex))
-        tokens = (tokens.take(randomIndex) ++ tokens.takeRight(tokens.size - randomIndex - 1))
-      }
+      val (newTokens, hand) = pickRandomN(tokens, 5)
+      tokens = newTokens
 
       i -> PlayerState(i, hand, tokens, FigureDeck(0, 0, 0))
     }.toMap
@@ -170,7 +169,7 @@ object GameState {
     var gameState = GameState(board, playerStates, FigureDeck(6, 6, 6), 0, fullTokensPlayed = false, characterTokensPlayed = false)
 
     if (addFiguresAuto) {
-      while(gameState.figuresDeck.nonEmpty) {
+      while (gameState.figuresDeck.nonEmpty) {
         val unsetCities = gameState.board.filter {
           case (_, BoardTile(Tile.City, figures, _)) => figures.size < 2
           case _ => false
@@ -192,5 +191,27 @@ object GameState {
       }
     }
     gameState
+  }
+
+  @scala.annotation.tailrec
+  def pickRandomN[T](seq: Seq[T], n: Int, acc: Seq[T] = Seq.empty[T]): (Seq[T], Seq[T]) = {
+    if (seq.isEmpty || n == 0) {
+      (seq, acc)
+    } else {
+      val (newSeq, newT) = pickRandom[T](seq)
+      pickRandomN(newSeq, n - 1, acc ++ Seq(newT).flatten)
+    }
+  }
+
+  def pickRandom[T](seq: Seq[T]): (Seq[T], Option[T]) = {
+    if (seq.isEmpty) {
+      (seq, None)
+    } else {
+      val random = Random.nextInt(seq.size)
+      val t = seq(random)
+      val resultSeq = seq.take(random) ++ seq.takeRight(seq.size - random - 1)
+
+      (resultSeq, Some(t))
+    }
   }
 }
