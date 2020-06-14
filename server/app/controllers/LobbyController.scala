@@ -33,7 +33,7 @@ class LobbyController @Inject()(val controllerComponents: ControllerComponents,
       for {
         currentUsers <- (lobbyManager ? LobbyManager.RequestOnlineUserList()).map(_.asInstanceOf[Set[Username]])
       } yield {
-        val webSocketUrl = routes.LobbyController.socket().webSocketURL(secure = true)
+        val webSocketUrl = routes.LobbyController.socket().webSocketURL(secure = false)
         val username = request.username.map(_.value).getOrElse("")
         val usersSeq = currentUsers.map(_.value).toSeq
         Ok(views.html.index(webSocketUrl, username, usersSeq))
@@ -65,7 +65,7 @@ class LobbyController @Inject()(val controllerComponents: ControllerComponents,
     request.username.fold(Future.successful(Redirect(routes.LoginController.login()))) { username =>
       (gameManager ? GameManager.GetGameInfo(gameId)).map {
         case Some(GameInfo(gameId, _, _, players, _)) if players.contains(username) =>
-          val webSocketUrl = routes.LobbyController.gameSocket(gameId).webSocketURL(secure = true)
+          val webSocketUrl = routes.LobbyController.gameSocket(gameId).webSocketURL(secure = false)
           Ok(views.html.samurai(webSocketUrl, username.value))
         case _ =>
           Redirect(routes.LobbyController.partyLobby(gameId)).flashing("error" -> "Couldn't start the game")
@@ -77,7 +77,7 @@ class LobbyController @Inject()(val controllerComponents: ControllerComponents,
     request.username.fold(Future.successful(Redirect(routes.LoginController.login()))) { username =>
       (gameManager ? GameManager.GetGameInfo(gameId)).map {
         case Some(GameInfo(gameId, _, _, players, _)) if players.contains(username) =>
-          val webSocketUrl = routes.LobbyController.gameSocket(gameId).webSocketURL(secure = true)
+          val webSocketUrl = routes.LobbyController.gameSocket(gameId).webSocketURL(secure = false)
           Ok(views.html.party_lobby(webSocketUrl, username.value, gameId, players.map(_.value)))
         case _ =>
           Redirect(routes.LobbyController.index()).flashing("error" -> "Couldn't join game")

@@ -1,24 +1,23 @@
 package samurai
 
 import core.{GameInfo, GameStatus, Username}
-import utils._
-import io.circe._
 import io.circe.generic.auto._
-import io.circe.parser._
-import io.circe.syntax._
 import io.circe.parser.decode
+import io.circe.syntax._
 import org.scalajs.dom
 import org.scalajs.dom.{WebSocket, document, html}
 import samurai.Board._
-import samurai.Figure._
 import samurai.draw._
-import websocket.{ClientRequestGameState, ClientSamuraiGameMove, ClientWebSocketMessage, ServerWebSocketMessage, UpdatedGameState}
+import utils._
+import websocket._
 
 import scala.util.Random
 
 object MainApp {
 
   case class CanvasPosition(x: Double, y: Double)
+
+  case class MouseState(position: CanvasPosition, down: Boolean)
 
   case class Rect(x: Double, y: Double, width: Double, height: Double) {
     def isInside(position: CanvasPosition): Boolean =
@@ -129,7 +128,7 @@ object MainApp {
     val cols = gameState.board.keys.map(_.column).max + 1
     val rows = gameState.board.keys.map(_.row).max + 1
 
-    var mouse = CanvasPosition(0, 0)
+    var mouse = MouseState(CanvasPosition(0, 0), down = false)
     var clickPosition = Option(CanvasPosition(0, 0))
     var selectedToken = Option.empty[Int]
 
@@ -142,13 +141,26 @@ object MainApp {
     var playerTokenDrawProps =
       PlayerTokenDrawProps(Rect(0, 0, 0, 0), maxPlayerTokens, 1)
 
+    var endButtonRect = Rect(
+      dom.window.innerWidth * 0.85,
+      dom.window.innerHeight * 0.61,
+      dom.window.innerWidth * 0.1,
+      dom.window.innerHeight * 0.1
+    )
+
+    dom.window.onmousedown = { event =>
+      val clientRect = canvas.getBoundingClientRect()
+      mouse = MouseState(CanvasPosition(event.clientX - clientRect.left, event.clientY - clientRect.top), down = true)
+    }
+
     dom.window.onmousemove = { event =>
       val clientRect = canvas.getBoundingClientRect()
-      mouse = CanvasPosition(event.clientX - clientRect.left, event.clientY - clientRect.top)
+      mouse = mouse.copy(position = CanvasPosition(event.clientX - clientRect.left, event.clientY - clientRect.top))
     }
 
     dom.window.onmouseup = { event =>
       val clientRect = canvas.getBoundingClientRect()
+      mouse = MouseState(CanvasPosition(event.clientX - clientRect.left, event.clientY - clientRect.top), down = false)
       clickPosition = Some(CanvasPosition(event.clientX - clientRect.left, event.clientY - clientRect.top))
     }
 
@@ -176,12 +188,19 @@ object MainApp {
         1
       )
 
-      val hoveredHex = getHoveredHex(mouse, boardDrawProps)
+      endButtonRect = Rect(
+        dom.window.innerWidth * 0.85,
+        dom.window.innerHeight * 0.61,
+        dom.window.innerWidth * 0.1,
+        dom.window.innerHeight * 0.1
+      )
+
+      val hoveredHex = getHoveredHex(mouse.position, boardDrawProps)
       val highlightedHexes = hoveredHex.map(Board.getNeighbours)
         .map(_.filter(n => gameState.board.get(n).exists(t => Tile.Settlements.contains(t.tile))))
         .getOrElse(Set()).map(_ -> "#eeeeff").toMap ++ hoveredHex.map(h => Map(h -> "#000000")).getOrElse(Map())
 
-      val hoveredToken = getHoveredPlayerToken(mouse, playerTokenDrawProps)
+      val hoveredToken = getHoveredPlayerToken(mouse.position, playerTokenDrawProps)
 
       clickPosition.flatMap(getHoveredPlayerToken(_, playerTokenDrawProps)).foreach { click =>
         println(click)
@@ -198,11 +217,22 @@ object MainApp {
         }
       }
 
+      clickPosition.foreach { pos =>
+        if (endButtonRect.isInside(pos)) {
+          socket.foreach(_.send(ClientSamuraiGameMove(EndTurn(selfPlayerId)).asInstanceOf[ClientWebSocketMessage].asJson.noSpaces))
+        }
+      }
+
       clickPosition = None
+
+      val buttonHover = endButtonRect.isInside(mouse.position)
+      val buttonPressed = buttonHover && mouse.down
+      val buttonIsActive = gameState.currentPlayer == selfPlayerId && (gameState.fullTokensPlayed || gameState.characterTokensPlayed)
 
       context.clearRect(0, 0, canvas.width, canvas.height)
       context.fillStyle = "#eee"
       context.fillRect(0, 0, canvas.width, canvas.height)
+
       drawBoard(gameState.board, boardDrawProps, context, highlightedHexes)
 
       drawPlayerTokens(
@@ -213,6 +243,10 @@ object MainApp {
         context
       )
 
+      drawEndTurnButton(
+        endButtonRect, active = buttonIsActive, buttonHover, buttonPressed, context
+      )
+
       clickPosition
         .map(mp => getHoveredHex(mp, boardDrawProps))
         .foreach(println)
@@ -221,6 +255,22 @@ object MainApp {
     }
 
     dom.window.requestAnimationFrame(_ => draw())
+  }
+
+  def drawEndTurnButton(drawRect: Rect, active: Boolean, hover: Boolean, pressed: Boolean,
+                        context: dom.CanvasRenderingContext2D): Unit = {
+
+    val color = if (active && pressed) {
+      "#1AC8DB"
+    } else if (active){
+      "#0292B7"
+    } else {
+      "#DEE2EC"
+    }
+
+    val r = Math.min(drawRect.width / 2, drawRect.height / 2)
+
+    drawButton(drawRect.x + drawRect.width / 2, drawRect.y + drawRect.height / 2, r, color, hover && active, context)
   }
 
   def drawPlayerTokens(

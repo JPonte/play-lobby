@@ -38,12 +38,14 @@ package object draw {
       case ExchangeToken(i, _) => s"Ex $i"
       case FigureExchange(_) => "Fe"
       case Ronin(i, _) => s"Ro $i"
+      case _ => s"???"
     }
     val color = token.playerId match {
       case 0 => "#fc7c72"
       case 1 => "#7cec72"
       case 2 => "#7c72fc"
       case 3 => "#cccc72"
+      case _ => "#ffffff"
     }
 
     drawHex(centerX, centerY, r, color, None, context)
@@ -167,6 +169,28 @@ package object draw {
     }
     context.closePath()
     context.fill()
+  }
+
+  def drawButton(
+                  centerX: Double,
+                  centerY: Double,
+                  r: Double,
+                  colorCode: String,
+                  hover: Boolean,
+                  context: dom.CanvasRenderingContext2D
+                ): Unit = {
+    if (hover) {
+      drawPoly(centerX, centerY, r, 8, "#000", context, rotation = Math.PI / 8)
+      drawPoly(centerX, centerY, r * 0.85, 8, colorCode, context, rotation = Math.PI / 8)
+    } else {
+      drawPoly(centerX, centerY, r, 8, colorCode, context, rotation = Math.PI / 8)
+    }
+
+    val text = "End Turn"
+    context.fillStyle = "#DEE2EC"
+    context.font = s"${r / 3}px Arial"
+    val metrics = context.measureText(text)
+    context.fillText(text, centerX - metrics.width / 2, centerY + r / 8)
   }
 
 }
