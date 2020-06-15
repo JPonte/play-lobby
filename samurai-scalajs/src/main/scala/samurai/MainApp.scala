@@ -5,7 +5,7 @@ import io.circe.generic.auto._
 import io.circe.parser.decode
 import io.circe.syntax._
 import org.scalajs.dom
-import org.scalajs.dom.{MessageEvent, WebSocket, document, html}
+import org.scalajs.dom.{MessageEvent, document, html}
 import samurai.Board._
 import samurai.draw._
 import utils._
@@ -75,7 +75,7 @@ object MainApp {
     }
 
     var gameState = GameState.initialGameState(Seq(Username("Aonte"), Username("Bonte")), addFiguresAuto = true)
-    var gameInfo = GameInfo(0, 2, None, Seq(Username("Aonte"), Username("Bonte")), GameStatus.Running)
+    var gameInfo = GameInfo(0, "Game", 2, None, Seq(Username("Aonte"), Username("Bonte")), GameStatus.Running)
 
     def selfPlayerId = {
       val i = gameInfo.players.indexOf(username)

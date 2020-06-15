@@ -10,7 +10,7 @@ import scala.concurrent.{ExecutionContext, Future}
 class GameInfoRepository(db: Database)(implicit val executionContext: ExecutionContext) {
 
   private def dbToGameInfo(info: Tables.GameInfoRow, players: Seq[GamePlayersRow]) = {
-    GameInfo(info.id, info.playerCount, info.password, players.map(p => Username(p.username)), info.status)
+    GameInfo(info.id, "", info.playerCount, info.password, players.map(p => Username(p.username)), info.status)
   }
 
   def getGamesForUser(username: Username): Future[immutable.Iterable[GameInfo]] = {

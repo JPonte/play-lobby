@@ -1,12 +1,13 @@
 package lobby
 
-import core.{PublicGameInfo, Username}
-import org.scalajs.dom
-import org.scalajs.dom.{WebSocket, document, html}
+import core.{GameStatus, PublicGameInfo, Username}
 import io.circe.generic.auto._
 import io.circe.parser._
 import io.circe.syntax._
-import websocket.{ClientLobbyChatMessage, ClientWebSocketMessage, LobbyGameList, ServerLobbyChatMessage, ServerUpdatedLobbyUsers, ServerWebSocketMessage}
+import lobby.components.ChatComponent
+import org.scalajs.dom
+import org.scalajs.dom.{WebSocket, document, html}
+import websocket._
 
 object Lobby {
   def run(): Unit = {
@@ -18,14 +19,9 @@ object Lobby {
     val userList = document.getElementById("lobby-user-list").asInstanceOf[html.UList]
     val gameList = document.getElementById("lobby-game-list").asInstanceOf[html.UList]
 
-    val chatArea = document.getElementById("chat-area").asInstanceOf[html.Div]
-    val inputField = document.getElementById("lobby-message-input").asInstanceOf[html.Input]
-    inputField.onkeydown = { event =>
-      if (event.key == "Enter") {
-        socket.send(ClientLobbyChatMessage(inputField.value).asInstanceOf[ClientWebSocketMessage].asJson.noSpaces)
-        inputField.value = ""
-      }
-    }
+    val chatComponent = new ChatComponent("chat-area", "lobby-message-input", { value =>
+      socket.send(ClientLobbyChatMessage(value).asInstanceOf[ClientWebSocketMessage].asJson.noSpaces)
+    })
 
     socket.onmessage = { event =>
       val jsonData = decode[ServerWebSocketMessage](event.data.toString)
@@ -33,25 +29,36 @@ object Lobby {
       jsonData match {
         case Left(error) => println(s"Error $error decoding ${event.data}")
         case Right(ServerLobbyChatMessage(None, content)) =>
-          chatArea.innerHTML = s"<div><b>$content</b></div>${chatArea.innerHTML}"
+          chatComponent.addMessage(s"<b>$content</b>")
         case Right(ServerLobbyChatMessage(Some(Username(sender)), content)) =>
-          chatArea.innerHTML = s"<div><b>$sender:</b> $content</div>${chatArea.innerHTML}"
+          chatComponent.addMessage(s"<b>$sender:</b> $content")
         case Right(ServerUpdatedLobbyUsers(users)) =>
           userList.innerHTML = ""
           users.foreach { user =>
             userList.innerHTML += s"<li>$user</li>"
           }
         case Right(LobbyGameList(games)) =>
-          println(games)
           gameList.innerHTML = ""
-          games.foreach { case PublicGameInfo(gameId, maxPlayerCount, hasPassword, playerCount, status) =>
-            val btn = document.createElement("button").asInstanceOf[html.Button]
-            btn.onclick = { e =>
-              document.location.href = s"/joinGame?gameId=$gameId"
+          val canJoin = !games.filter(_.status == GameStatus.WaitingToStart).exists(_.isUserIn == true)
+          games.filter(_.status == GameStatus.WaitingToStart).foreach { case PublicGameInfo(gameId, name, maxPlayerCount, hasPassword, playerCount, _, isUserIn) =>
+            val li = document.createElement("li").asInstanceOf[html.LI]
+            val btn = document.createElement(s"button").asInstanceOf[html.Button]
+
+            val (href, btnText) = if (isUserIn) {
+              (s"/partylobby/$gameId", "To party lobby")
+            } else {
+              (s"/joinGame?gameId=$gameId", "Join")
             }
-            btn.innerText = "Join"
-            gameList.innerHTML += s"<li>$gameId\t$playerCount/$maxPlayerCount\tPassword: $hasPassword\t$status\t</li>"
-            gameList.appendChild(btn)
+
+            btn.onclick = { _ =>
+              document.location.href = href
+            }
+
+            btn.innerText = btnText
+            li.innerHTML = s"<li><b>$name</b>\tPlayers: $playerCount/$maxPlayerCount\tHas password? ${if (hasPassword) "Yes" else "No"}</li>"
+            if (isUserIn || canJoin) //TODO: Do this logic on the server side as well
+              li.appendChild(btn)
+            gameList.appendChild(li)
           }
         case x => println(s"Couldn't handle $x")
       }

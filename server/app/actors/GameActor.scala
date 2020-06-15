@@ -11,7 +11,7 @@ class GameActor(gameId: Int, settings: GameSettings) extends Actor with ActorLog
 
   log.debug(s"GameActor for game $gameId started")
 
-  private var gameInfo = GameInfo(gameId, 2, settings.password, Seq(), GameStatus.WaitingToStart)
+  private var gameInfo = GameInfo(gameId, settings.name, 2, settings.password, Seq(), GameStatus.WaitingToStart)
   private var gameState = Option.empty[GameState]
 
   private var webSocketActors = Map.empty[Username, Set[ActorRef]]

@@ -75,8 +75,6 @@ class GameManager extends Actor with ActorLogging {
     Future.sequence(gameActors.values.toSeq.map(ga => (ga ? GameActor.GetGameInfo).mapTo[GameInfo]))
   }
 
-  private def getAllGamesPublicInfo: Future[Seq[PublicGameInfo]] = getAllGamesInfo.map(_.map(PublicGameInfo(_)))
-
   private def findGamesForUser(username: Username): Future[Seq[GameInfo]] = {
     getAllGamesInfo.map(_.filter(_.players.contains(username)))
   }

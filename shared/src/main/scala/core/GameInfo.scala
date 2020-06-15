@@ -9,12 +9,12 @@ object GameStatus {
   val Finished = 2
 }
 
-case class GameSettings(password: Option[String])
-case class GameInfo(gameId: Int, playerCount: Int, password: Option[String], players: Seq[Username], status: GameStatus)
+case class GameSettings(name: String, password: Option[String])
+case class GameInfo(gameId: Int, name: String, playerCount: Int, password: Option[String], players: Seq[Username], status: GameStatus)
 
-case class PublicGameInfo(gameId: Int, maxPlayerCount: Int, hasPassword: Boolean, playerCount: Int, status: GameStatus)
+case class PublicGameInfo(gameId: Int, name: String, maxPlayerCount: Int, hasPassword: Boolean, playerCount: Int, status: GameStatus, isUserIn: Boolean)
 
 object PublicGameInfo {
-  def apply(gameInfo: GameInfo): PublicGameInfo =
-    new PublicGameInfo(gameInfo.gameId, gameInfo.playerCount, gameInfo.password.nonEmpty, gameInfo.players.size, gameInfo.status)
+  def apply(gameInfo: GameInfo, targetUser: Username): PublicGameInfo =
+    new PublicGameInfo(gameInfo.gameId, gameInfo.name, gameInfo.playerCount, gameInfo.password.nonEmpty, gameInfo.players.size, gameInfo.status, gameInfo.players.contains(targetUser))
 }

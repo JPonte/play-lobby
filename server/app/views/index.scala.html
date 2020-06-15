@@ -19,6 +19,8 @@
         <form method="post" action="@routes.LobbyController.createGame">
             @helper.CSRF.formField
             <div>
+                <h4>Game Name:</h4>
+                <input type="text" name="game-name">
                 <h4>Password:</h4>
                 <input type="text" name="password">
             </div>

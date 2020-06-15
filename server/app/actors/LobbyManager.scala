@@ -27,7 +27,7 @@ class LobbyManager(gameManager: ActorRef) extends Actor with ActorLogging {
         self ! InternalLobbyMessage(ServerLobbyChatMessage(None, s"${username.value} joined the lobby"))
         self ! InternalLobbyMessage(ServerUpdatedLobbyUsers(usersMap.keys.map(_.value).toSeq))
       }
-      (gameManager ? GameManager.GetGames).mapTo[Seq[GameInfo]].map(games => SendToClient(LobbyGameList(games.map(PublicGameInfo(_))))).pipeTo(actor)
+      (gameManager ? GameManager.GetGames).mapTo[Seq[GameInfo]].map(games => SendToClient(LobbyGameList(games.map(PublicGameInfo(_, username))))).pipeTo(actor)
     case UserLeft(username, actor) =>
       val updatedActors = usersMap.get(username).map(_ - actor).getOrElse(Set.empty[ActorRef])
       if (updatedActors.isEmpty) {
@@ -37,7 +37,7 @@ class LobbyManager(gameManager: ActorRef) extends Actor with ActorLogging {
       } else {
         usersMap = usersMap + (username -> updatedActors)
       }
-      (gameManager ? GameManager.GetGames).mapTo[Seq[GameInfo]].map(games => GameListChanged(games.map(PublicGameInfo(_)))).pipeTo(actor)
+      (gameManager ? GameManager.GetGames).mapTo[Seq[GameInfo]].map(games => GameListChanged(games)).pipeTo(actor)
     case PartyChatMessage(gameId, sender, content, recipients) =>
       recipients.flatMap(r => usersMap(r)).foreach(_ ! WebSocketActor.SendToClient(ServerPartyChatMessage(Some(sender), gameId, content)))
     case ClientMessageReceived(sender, ClientLobbyChatMessage(content)) =>
@@ -45,7 +45,9 @@ class LobbyManager(gameManager: ActorRef) extends Actor with ActorLogging {
     case InternalLobbyMessage(message) =>
       usersMap.values.flatten.foreach(_ ! WebSocketActor.SendToClient(message))
     case GameListChanged(games) =>
-      usersMap.values.flatten.foreach(_ ! WebSocketActor.SendToClient(LobbyGameList(games)))
+      usersMap.foreach {
+        case (user, actors) => actors.foreach(_ ! WebSocketActor.SendToClient(LobbyGameList(games.map(PublicGameInfo(_, user)))))
+      }
     case m => log.error(s"Unknown message sent to LobbyManager $m")
   }
 }
@@ -60,5 +62,5 @@ object LobbyManager {
   case class InternalPartyMessage(gameId: Int, message: ServerWebSocketMessage)
   case class PartyChatMessage(gameId: Int, sender: Username, content: String, recipients: Seq[Username])
 
-  case class GameListChanged(games: Seq[PublicGameInfo])
+  case class GameListChanged(games: Seq[GameInfo])
 }

@@ -10,7 +10,9 @@ class ChatComponent(chatAreaId: String, inputFieldId: String, callback: String =
 
   inputField.onkeydown = { event =>
     if (event.key == "Enter") {
-      callback(inputField.value)
+      if (inputField.value.trim.nonEmpty) {
+        callback(inputField.value.trim)
+      }
       inputField.value = ""
     }
   }
