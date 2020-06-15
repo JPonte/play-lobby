@@ -124,6 +124,7 @@ case class GameState(board: Board, players: Map[PlayerId, PlayerState], figuresD
           case (figure, Some(playerId)) =>
             val pState = newPlayers(playerId)
             newPlayers += playerId -> pState.copy(scoreDeck = pState.scoreDeck.addFigure(figure))
+          case _ =>
         }
     }
 

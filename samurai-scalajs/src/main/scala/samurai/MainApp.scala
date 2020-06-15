@@ -5,13 +5,13 @@ import io.circe.generic.auto._
 import io.circe.parser.decode
 import io.circe.syntax._
 import org.scalajs.dom
-import org.scalajs.dom.{WebSocket, document, html}
+import org.scalajs.dom.{MessageEvent, WebSocket, document, html}
 import samurai.Board._
 import samurai.draw._
 import utils._
 import websocket._
 
-import scala.util.Random
+import scala.util.{Random, Try}
 
 object MainApp {
 
@@ -63,16 +63,8 @@ object MainApp {
     val context =
       canvas.getContext("2d").asInstanceOf[dom.CanvasRenderingContext2D]
 
-    var socket = Option.empty[WebSocket]
     val username = Username(document.getElementById("username").asInstanceOf[html.Input].value)
-
-    try {
-      val url = document.getElementById("data-url").asInstanceOf[html.Input].value
-
-      socket = Some(new WebSocket(url))
-    } catch {
-      case e: Throwable => println("Couldn't start socket")
-    }
+    val url = Try(document.getElementById("data-url").asInstanceOf[html.Input].value).getOrElse("")
 
     canvas.width = dom.window.innerWidth.toInt
     canvas.height = dom.window.innerHeight.toInt
@@ -90,7 +82,7 @@ object MainApp {
       if (i < 0) 0 else i
     }
 
-    socket.foreach(_.onmessage = { event =>
+    def onSocketMessage(event: MessageEvent): Unit = {
       val jsonData = decode[ServerWebSocketMessage](event.data.toString)
       jsonData match {
         case Right(UpdatedGameState(gi, Some(state))) =>
@@ -98,11 +90,12 @@ object MainApp {
           gameInfo = gi
         case m => println(s"Couldn't process $m")
       }
-    })
+    }
 
-    socket.foreach(s => s.onopen = { event =>
-      s.send(ClientRequestGameState.asInstanceOf[ClientWebSocketMessage].asJson.noSpaces)
-    })
+    val socket = new WebSocketWrapper(url, _ => onSocketMessage,
+      s => { _ =>
+        s.send(ClientRequestGameState.asInstanceOf[ClientWebSocketMessage].asJson.noSpaces)
+      })
 
     while (gameState.figuresDeck.nonEmpty) {
       val unsetCities = gameState.board.filter {
@@ -213,13 +206,13 @@ object MainApp {
 
       clickPosition.flatMap(getHoveredHex(_, boardDrawProps)).foreach { click =>
         selectedToken.foreach { st =>
-          socket.foreach(s => s.send(ClientSamuraiGameMove(AddToken(selfPlayerId, st, click)).asInstanceOf[ClientWebSocketMessage].asJson.noSpaces))
+          socket.send(ClientSamuraiGameMove(AddToken(selfPlayerId, st, click)).asInstanceOf[ClientWebSocketMessage].asJson.noSpaces)
         }
       }
 
       clickPosition.foreach { pos =>
         if (endButtonRect.isInside(pos)) {
-          socket.foreach(_.send(ClientSamuraiGameMove(EndTurn(selfPlayerId)).asInstanceOf[ClientWebSocketMessage].asJson.noSpaces))
+          socket.send(ClientSamuraiGameMove(EndTurn(selfPlayerId)).asInstanceOf[ClientWebSocketMessage].asJson.noSpaces)
         }
       }
 
@@ -279,7 +272,7 @@ object MainApp {
 
     val color = if (active && pressed) {
       "#1AC8DB"
-    } else if (active){
+    } else if (active) {
       "#0292B7"
     } else {
       "#DEE2EC"
