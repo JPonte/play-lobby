@@ -73,49 +73,61 @@ case class GameState(board: Board, players: Map[PlayerId, PlayerState], figuresD
   }
 
   private def resolveCapture: GameState = {
-    val newBoard = board.map {
-      case x@(position, boardTile) if Tile.Settlements.contains(boardTile.tile) =>
+    val toRemove = board.filter {
+      case (position, boardTile) if Tile.Settlements.contains(boardTile.tile) =>
         val neighbourTiles = Board.getNeighbours(position).flatMap(board.get)
-        val landTiles = neighbourTiles.filter(_.tile == Tile.Land)
-        if (landTiles.forall(_.token.nonEmpty)) {
-          val seaTiles = neighbourTiles.filter(_.tile == Tile.Sea)
+        if (neighbourTiles.filter(_.tile == Tile.Land).forall(_.token.nonEmpty)) {
 
-          val scores = (landTiles ++ seaTiles).toSeq.flatMap(_.token).collect {
-            case SamuraiToken(influence, playerId) => Map(Figure.RiceField -> Map(playerId -> influence), Figure.Helmet -> Map(playerId -> influence), Figure.Buddha -> Map(playerId -> influence))
-            case Ronin(influence, playerId) => Map(Figure.RiceField -> Map(playerId -> influence), Figure.Helmet -> Map(playerId -> influence), Figure.Buddha -> Map(playerId -> influence))
-            case Ship(influence, playerId) => Map(Figure.RiceField -> Map(playerId -> influence), Figure.Helmet -> Map(playerId -> influence), Figure.Buddha -> Map(playerId -> influence))
-            case FigureToken(figure, influence, playerId) => Map(figure -> Map(playerId -> influence))
-          }.foldLeft(Map.empty[Figure, Map[PlayerId, Int]]) { case (map, scores) =>
-            map ++ scores.map { case (fig, playerScore) =>
-              fig -> (map.getOrElse(fig, Map()) ++ playerScore.map { case (player, score) =>
-                player -> (score + map.get(fig).flatMap(_.get(player)).getOrElse(0))
-              })
-            }
-          }
-
-          val result = scores.collect {
-            case (figure, scores) if boardTile.figures.contains(figure) && scores.size == 1 =>
-              figure -> Option(scores.head._1)
-            case (figure, scores) if boardTile.figures.contains(figure) =>
-              val sortedScores = scores.toSeq.sortBy(-_._2)
-              if (sortedScores.head._2 > sortedScores(1)._2)
-                figure -> Option(sortedScores.head._1)
-              else
-                figure -> None
-          }
-
-          //TODO: Actually use the result...
-
-          println(result)
-
-          position -> boardTile.copy(figures = Set())
+          true
         } else {
-          x
+          false
         }
-      case x => x
+      case _ => false
     }
 
-    copy(board = newBoard)
+    val newBoard = board.map {
+      case (position, boardTile) if toRemove.contains(position) => position -> boardTile.copy(figures = Set())
+      case t => t
+    }
+
+    var newPlayers = players
+
+    toRemove.foreach {
+      case (position, boardTile) =>
+        val neighbourTiles = Board.getNeighbours(position).flatMap(board.get)
+
+        val scores = neighbourTiles.toSeq.flatMap(_.token).collect {
+          case SamuraiToken(influence, playerId) => Map(Figure.RiceField -> Map(playerId -> influence), Figure.Helmet -> Map(playerId -> influence), Figure.Buddha -> Map(playerId -> influence))
+          case Ronin(influence, playerId) => Map(Figure.RiceField -> Map(playerId -> influence), Figure.Helmet -> Map(playerId -> influence), Figure.Buddha -> Map(playerId -> influence))
+          case Ship(influence, playerId) => Map(Figure.RiceField -> Map(playerId -> influence), Figure.Helmet -> Map(playerId -> influence), Figure.Buddha -> Map(playerId -> influence))
+          case FigureToken(figure, influence, playerId) => Map(figure -> Map(playerId -> influence))
+        }.foldLeft(Map.empty[Figure, Map[PlayerId, Int]]) { case (map, scores) =>
+          map ++ scores.map { case (fig, playerScore) =>
+            fig -> (map.getOrElse(fig, Map()) ++ playerScore.map { case (player, score) =>
+              player -> (score + map.get(fig).flatMap(_.get(player)).getOrElse(0))
+            })
+          }
+        }
+
+        val result = scores.collect {
+          case (figure, scores) if boardTile.figures.contains(figure) && scores.size == 1 =>
+            figure -> Option(scores.head._1)
+          case (figure, scores) if boardTile.figures.contains(figure) =>
+            val sortedScores = scores.toSeq.sortBy(-_._2)
+            if (sortedScores.head._2 > sortedScores(1)._2)
+              figure -> Option(sortedScores.head._1)
+            else
+              figure -> None
+        }
+
+        result.foreach {
+          case (figure, Some(playerId)) =>
+            val pState = newPlayers(playerId)
+            newPlayers += playerId -> pState.copy(scoreDeck = pState.scoreDeck.addFigure(figure))
+        }
+    }
+
+    copy(board = newBoard, players = newPlayers)
   }
 }
 
