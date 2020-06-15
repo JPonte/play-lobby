@@ -247,6 +247,9 @@ object MainApp {
         endButtonRect, active = buttonIsActive, buttonHover, buttonPressed, context
       )
 
+      val fontSize = Math.min(canvas.width * 0.02f, canvas.height * 0.02f)
+      drawPlayers(CanvasPosition(fontSize, 2 * fontSize), fontSize, gameInfo, gameState, context)
+
       clickPosition
         .map(mp => getHoveredHex(mp, boardDrawProps))
         .foreach(println)
@@ -255,6 +258,20 @@ object MainApp {
     }
 
     dom.window.requestAnimationFrame(_ => draw())
+  }
+
+  def drawPlayers(position: CanvasPosition, fontSize: Float, gameInfo: GameInfo, gameState: GameState, context: dom.CanvasRenderingContext2D): Unit = {
+    context.fillStyle = "#000000"
+    context.font = s"${fontSize}px Arial"
+    gameInfo.players.zipWithIndex.foreach { case (player, index) =>
+      val state = gameState.players(index)
+      val scoreText = s"${player.value}'s score:\tHelmets(${state.scoreDeck.helmets})\tRice(${state.scoreDeck.riceFields})\tBuddhas(${state.scoreDeck.buddhas})"
+      context.fillText(scoreText, position.x, position.y + (index * fontSize * 1.5))
+    }
+
+    val currentPlayer = gameInfo.players(gameState.currentPlayer).value
+
+    context.fillText(s"It's $currentPlayer's turn", position.x, position.y + (gameInfo.players.size * fontSize * 1.5) + 2 * fontSize)
   }
 
   def drawEndTurnButton(drawRect: Rect, active: Boolean, hover: Boolean, pressed: Boolean,

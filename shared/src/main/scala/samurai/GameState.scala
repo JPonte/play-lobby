@@ -9,7 +9,7 @@ import samurai.PlayerState._
 import scala.annotation.tailrec
 import scala.util.Random
 
-case class PlayerState(playerId: Int, tokens: Seq[Token], deck: Seq[Token], figureDeck: FigureDeck) {
+case class PlayerState(playerId: Int, tokens: Seq[Token], deck: Seq[Token], figureDeck: FigureDeck, scoreDeck: FigureDeck) {
   def drawTokens(count: Int): PlayerState = {
     @tailrec
     def drawTokensAux(playerState: PlayerState, count: Int): PlayerState = {
@@ -153,7 +153,7 @@ object GameState {
       val (newTokens, hand) = pickRandomN(tokens, 5)
       tokens = newTokens
 
-      i -> PlayerState(i, hand, tokens, FigureDeck(0, 0, 0))
+      i -> PlayerState(i, hand, tokens, FigureDeck(0, 0, 0), FigureDeck(0, 0, 0))
     }.toMap
 
     val board = Board.twoPlayerBoard.map {
