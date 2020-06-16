@@ -13,6 +13,7 @@ GET     /samurai                    controllers.LobbyController.samurai(gameId: 
 GET     /partylobby/:gameId         controllers.LobbyController.partyLobby(gameId: Int)
 POST    /createGame                 controllers.LobbyController.createGame
 GET     /joinGame                   controllers.LobbyController.joinGame(gameId: Int, password: Option[String])
+GET     /leaveGame                  controllers.LobbyController.leaveGame(gameId: Int)
 GET     /startGame                  controllers.LobbyController.startGame(gameId: Int)
 
 GET     /socket                     controllers.LobbyController.socket

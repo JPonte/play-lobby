@@ -125,6 +125,18 @@ class LobbyController @Inject()(val controllerComponents: ControllerComponents,
     }
   }
 
+  def leaveGame(gameId: Int): Action[AnyContent] = userAction.async { implicit request: UserRequest[AnyContent] =>
+    request.username.fold(Future.successful(Redirect(routes.LoginController.login()))) { username =>
+      (gameManager ? GameManager.RequestLeaveGame(username, gameId)).mapTo[Boolean].map {result =>
+        if(result) {
+          Redirect(routes.LobbyController.index())
+        } else {
+          Redirect(routes.LobbyController.index()).flashing("error" -> "An error occurred")
+        }
+      }
+    }
+  }
+
   def startGame(gameId: Int): Action[AnyContent] = userAction.async { implicit request: UserRequest[AnyContent] =>
     request.username.fold(Future.successful(Redirect(routes.LoginController.login()))) { username =>
       (gameManager ? GameManager.GetGameInfo(gameId)).flatMap {

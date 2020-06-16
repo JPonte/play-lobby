@@ -4,7 +4,7 @@
 <div id="party-lobby-container">
     <div id="actions-header">
         <a href="@routes.LobbyController.index()">Back to lobby</a>
-        <button>Leave Game</button>
+        <button onclick="document.location.href='@routes.LobbyController.leaveGame(gameId)'">Leave Game</button>
     </div>
     <div id="top-container">
         <div id="party-player-list" class="basic-lobby-container">
