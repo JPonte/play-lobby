@@ -72,6 +72,10 @@ class GameActor(gameId: Int, settings: GameSettings) extends Actor with ActorLog
           } else {
             gameState = moveResult
             notifyGameStateChanged()
+            if (gameState.map(_.getGamePhase).contains(GameState.Finished)) {
+              gameInfo = gameInfo.copy(status = GameStatus.Finished)
+              notifyGameInfoChanged()
+            }
           }
         case None =>
           log.error("Game move before game has started")
