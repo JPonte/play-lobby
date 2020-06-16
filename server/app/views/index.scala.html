@@ -1,21 +1,10 @@
 @(webSocketUrl: String, username: String, players: Seq[String])(implicit request: RequestHeader, flash: Flash)
 
-@main("Lobby") {
+@main("Lobby", "stylesheets/lobby.css") {
 <div class="modal">
     <div class="modal-content">
         <span class="close-btn">&times;</span>
         <h2>Create</h2>
-<!--        <h4>Player count: </h4>-->
-<!--        <select name="player-count-selector" id="player-count-selector">-->
-<!--            <option value="2-players">2</option>-->
-<!--            <option value="3-players">3</option>-->
-<!--            <option value="4-players">4</option>-->
-<!--        </select>-->
-<!--        <h4>Extras:</h4>-->
-<!--        <div>-->
-<!--            <label>Auto-assign figures:</label>-->
-<!--            <input type="checkbox">-->
-<!--        </div>-->
         <form method="post" action="@routes.LobbyController.createGame">
             @helper.CSRF.formField
             <div>
@@ -32,7 +21,7 @@
     <h1>Hi @username</h1>
     <div id="actions-header">
         <button id="create-game-button">Create Game</button>
-        <a href="@routes.LoginController.logout()">Logout</a>
+        <button id="logout-button" onclick="document.location.href='@routes.LoginController.logout()'">Logout</button>
     </div>
     <div id="social-container">
         <div id="player-list">

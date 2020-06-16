@@ -1,6 +1,6 @@
 @(webSocketUrl: String, username: String, gameId: Int, players: Seq[String])(implicit flash: Flash)
 
-@main("Lobby") {
+@main("Lobby", "stylesheets/lobby.css") {
 <div id="party-lobby-container">
     <div id="actions-header">
         <a href="@routes.LobbyController.index()">Back to lobby</a>

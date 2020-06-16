@@ -1,9 +1,9 @@
 @()(implicit request: RequestHeader, flash: Flash)
 
-@main("Register") {
+@main("Register", "stylesheets/login.css") {
 
 <div id="login-container">
-    <h1>Bobby Lobby</h1>
+    <h1>Samurai</h1>
     <h2>Please choose a username and password</h2>
     <form method="post" action="@routes.LoginController.validateRegister">
         @helper.CSRF.formField

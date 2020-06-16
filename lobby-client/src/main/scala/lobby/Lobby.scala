@@ -40,12 +40,14 @@ object Lobby {
         case Right(LobbyGameList(games)) =>
           gameList.innerHTML = ""
           val canJoin = !games.filter(_.status == GameStatus.WaitingToStart).exists(_.isUserIn == true)
-          games.filter(_.status == GameStatus.WaitingToStart).foreach { case PublicGameInfo(gameId, name, maxPlayerCount, hasPassword, playerCount, _, isUserIn) =>
+          games.filter(_.status != GameStatus.Finished).foreach { case PublicGameInfo(gameId, name, maxPlayerCount, hasPassword, playerCount, status, isUserIn) =>
             val li = document.createElement("li").asInstanceOf[html.LI]
             val btn = document.createElement(s"button").asInstanceOf[html.Button]
 
-            val (href, btnText) = if (isUserIn) {
+            val (href, btnText) = if (isUserIn && status == GameStatus.WaitingToStart) {
               (s"/partylobby/$gameId", "To party lobby")
+            } else if (isUserIn && status == GameStatus.Running) {
+              (s"/samurai?gameId=$gameId", "Back to game")
             } else {
               (s"/joinGame?gameId=$gameId", "Join")
             }
@@ -56,8 +58,9 @@ object Lobby {
 
             btn.innerText = btnText
             li.innerHTML = s"<li><b>$name</b>\tPlayers: $playerCount/$maxPlayerCount\tHas password? ${if (hasPassword) "Yes" else "No"}</li>"
-            if (isUserIn || canJoin) //TODO: Do this logic on the server side as well
+            if (isUserIn || canJoin) { //TODO: Do this logic on the server side as well
               li.appendChild(btn)
+            }
             gameList.appendChild(li)
           }
         case x => println(s"Couldn't handle $x")

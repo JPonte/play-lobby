@@ -1,0 +1,50 @@
+* {
+ font-family: Arial;
+}
+
+#login-container {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  width: 30rem;
+  margin: 10% auto;
+}
+
+input[type=text], input[type=password], select {
+  padding: 12px 12px;
+  margin: 8px 0px;
+  display: inline-block;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+input[type=submit] {
+  background-color: #35bee0;
+  color: white;
+  padding: 14px 20px;
+  margin: 8px 0px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  width: 100%
+}
+
+input[type=submit]:hover {
+  background-color: #80d1e5;
+}
+
+form {
+    width: 100%;
+}
+
+label {
+    margin: 16px 0;
+}
+
+#error_div {
+  padding: 20px;
+  background-color: #dd5555;
+  color: white;
+}
