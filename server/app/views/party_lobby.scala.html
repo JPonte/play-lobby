@@ -1,22 +1,23 @@
-@(webSocketUrl: String, username: String, gameId: Int, players: Seq[String])(implicit flash: Flash)
+@(webSocketUrl: String, username: String, gameId: Int, gameName: String, players: Seq[String])(implicit flash: Flash)
 
 @main("Lobby", "stylesheets/lobby.css") {
 <div id="party-lobby-container">
-    <div id="actions-header">
-        <a href="@routes.LobbyController.index()">Back to lobby</a>
-        <button onclick="document.location.href='@routes.LobbyController.leaveGame(gameId)'">Leave Game</button>
+    <div class="card" id="actions-header">
+        <div class="header-text" id="lobby-title-text">@gameName</div>
+        <button onclick="document.location.href='@routes.LobbyController.index()'">BACK TO LOBBY</button>
+        <button onclick="document.location.href='@routes.LobbyController.leaveGame(gameId)'">LEAVE GAME</button>
+        <button onclick="document.location.href='@routes.LobbyController.startGame(gameId)'">START GAME</button>
     </div>
-    <div id="top-container">
-        <div id="party-player-list" class="basic-lobby-container">
+    <div class="card" id="top-container">
+        <div class="header-text">Players</div>
+        <div id="party-player-list">
             @for(player <- players) {
             <div class="waiting-player">@player</div>
             }
         </div>
-        <a href="@routes.LobbyController.startGame(gameId)">Start Game</a>
-<!--        <button id="start-game-button">Start Game</button>-->
     </div>
-    <div id="chat-container">
-        <label>Party chat</label>
+    <div class="card" id="chat-container">
+        <div class="header-text">Party chat</div>
         <div id="chat-area"></div>
         <input type="text" id="lobby-message-input">
     </div>

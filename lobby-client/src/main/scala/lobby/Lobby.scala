@@ -45,11 +45,11 @@ object Lobby {
             val btn = document.createElement(s"button").asInstanceOf[html.Button]
 
             val (href, btnText) = if (isUserIn && status == GameStatus.WaitingToStart) {
-              (s"/partylobby/$gameId", "To party lobby")
+              (s"/partylobby/$gameId", "BACK TO GAME")
             } else if (isUserIn && status == GameStatus.Running) {
-              (s"/samurai?gameId=$gameId", "Back to game")
+              (s"/samurai?gameId=$gameId", "BACK TO GAME")
             } else {
-              (s"/joinGame?gameId=$gameId", "Join")
+              (s"/joinGame?gameId=$gameId", "JOIN")
             }
 
             btn.onclick = { _ =>
@@ -57,10 +57,11 @@ object Lobby {
             }
 
             btn.innerText = btnText
-            li.innerHTML = s"<li><b>$name</b>\tPlayers: $playerCount/$maxPlayerCount\tHas password? ${if (hasPassword) "Yes" else "No"}</li>"
+            li.innerHTML = s"<div class='game-list-item-text'><b>$name</b>\tPlayers: $playerCount/$maxPlayerCount<div>"
             if (isUserIn || canJoin) { //TODO: Do this logic on the server side as well
               li.appendChild(btn)
             }
+            li.setAttribute("class", "game-list-item")
             gameList.appendChild(li)
           }
         case x => println(s"Couldn't handle $x")

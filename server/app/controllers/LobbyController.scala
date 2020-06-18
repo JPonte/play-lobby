@@ -6,7 +6,7 @@ import actors.{GameManager, GameWebSocketActor, LobbyManager, WebSocketActor}
 import akka.actor.{ActorSystem, Props}
 import akka.pattern.{ask, pipe}
 import akka.util.Timeout
-import core.{GameInfo, GameSettings, PublicGameInfo, Username}
+import core.{GameInfo, GameSettings, Username}
 import javax.inject.{Inject, Singleton}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.streams.ActorFlow
@@ -15,6 +15,8 @@ import slick.jdbc.JdbcProfile
 
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
+
+import scala.util.Properties
 
 @Singleton
 class LobbyController @Inject()(val controllerComponents: ControllerComponents,
@@ -26,6 +28,7 @@ class LobbyController @Inject()(val controllerComponents: ControllerComponents,
   private implicit val defaultTimeout: Timeout = Timeout(10.seconds)
   private val gameManager = system.actorOf(Props(classOf[GameManager]), "GameManager")
   private val lobbyManager = system.actorOf(Props(classOf[LobbyManager], gameManager), "LobbyManager")
+  private val useSecureSockets = Properties.envOrElse("SECURE_SOCKETS", "false").toBoolean
 
   def index(): Action[AnyContent] = userAction.async { implicit request: UserRequest[AnyContent] =>
     request.username.fold(Future.successful(Redirect(routes.LoginController.login()))) { _ =>
@@ -33,7 +36,7 @@ class LobbyController @Inject()(val controllerComponents: ControllerComponents,
       for {
         currentUsers <- (lobbyManager ? LobbyManager.RequestOnlineUserList()).map(_.asInstanceOf[Set[Username]])
       } yield {
-        val webSocketUrl = routes.LobbyController.socket().webSocketURL(secure = true)
+        val webSocketUrl = routes.LobbyController.socket().webSocketURL(secure = useSecureSockets)
         val username = request.username.map(_.value).getOrElse("")
         val usersSeq = currentUsers.map(_.value).toSeq
         Ok(views.html.index(webSocketUrl, username, usersSeq))
@@ -65,7 +68,7 @@ class LobbyController @Inject()(val controllerComponents: ControllerComponents,
     request.username.fold(Future.successful(Redirect(routes.LoginController.login()))) { username =>
       (gameManager ? GameManager.GetGameInfo(gameId)).map {
         case Some(GameInfo(gameId, name, _, _, players, _)) if players.contains(username) =>
-          val webSocketUrl = routes.LobbyController.gameSocket(gameId).webSocketURL(secure = true)
+          val webSocketUrl = routes.LobbyController.gameSocket(gameId).webSocketURL(secure = useSecureSockets)
           Ok(views.html.samurai(webSocketUrl, username.value))
         case _ =>
           Redirect(routes.LobbyController.partyLobby(gameId)).flashing("error" -> "Couldn't start the game")
@@ -76,9 +79,9 @@ class LobbyController @Inject()(val controllerComponents: ControllerComponents,
   def partyLobby(gameId: Int): Action[AnyContent] = userAction.async { implicit request: UserRequest[AnyContent] =>
     request.username.fold(Future.successful(Redirect(routes.LoginController.login()))) { username =>
       (gameManager ? GameManager.GetGameInfo(gameId)).map {
-        case Some(GameInfo(gameId, _, _, _, players, _)) if players.contains(username) =>
-          val webSocketUrl = routes.LobbyController.gameSocket(gameId).webSocketURL(secure = true)
-          Ok(views.html.party_lobby(webSocketUrl, username.value, gameId, players.map(_.value)))
+        case Some(GameInfo(gameId, name, _, _, players, _)) if players.contains(username) =>
+          val webSocketUrl = routes.LobbyController.gameSocket(gameId).webSocketURL(secure = useSecureSockets)
+          Ok(views.html.party_lobby(webSocketUrl, username.value, gameId, name, players.map(_.value)))
         case _ =>
           Redirect(routes.LobbyController.index()).flashing("error" -> "Couldn't join game")
       }
