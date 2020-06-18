@@ -37,8 +37,8 @@ class LoginController @Inject()(val controllerComponents: ControllerComponents,
   def validateLogin(): Action[AnyContent] = Action.async { implicit request =>
     (for {
       body <- request.body.asFormUrlEncoded
-      username <- body.get("username").flatMap(_.headOption)
-      password <- body.get("password").flatMap(_.headOption)
+      username <- body.get("username").flatMap(_.headOption).map(_.trim)
+      password <- body.get("password").flatMap(_.headOption).map(_.trim)
     } yield {
       userRepository.validateUser(username, password).map {
         case true => Redirect(routes.LobbyController.index()).withSession(UserAction.USER_SESSION_COOKIE_ID -> username)
@@ -53,8 +53,10 @@ class LoginController @Inject()(val controllerComponents: ControllerComponents,
     val newUser = for {
       body <- request.body.asFormUrlEncoded
       username <- body.get("username").flatMap(_.headOption)
+      if username.trim.nonEmpty
       password <- body.get("password").flatMap(_.headOption)
-    } yield User(username, password)
+      if password.trim.nonEmpty
+    } yield User(username.trim, password.trim)
 
     newUser.map(userRepository.addUser).getOrElse(Future.successful(false)).map {
       case true => Redirect(routes.LobbyController.index()).withSession(UserAction.USER_SESSION_COOKIE_ID -> newUser.map(_.username).get)
