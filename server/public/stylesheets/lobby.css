@@ -126,19 +126,20 @@ li {
   display: flex;
   flex-direction: column;
   align-items: stretch;
+  height: 35vh;
 }
 
 #games-container {
   display: flex;
   flex-direction: column;
-  height: 25em;
+  height: 40vh;
 }
 
 #top-container {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  height: 20em;
+  height: 35vh;
 }
 
 input[type="text"] {
