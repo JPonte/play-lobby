@@ -11,7 +11,7 @@ class GameActor(gameId: Int, settings: GameSettings) extends Actor with ActorLog
 
   log.debug(s"GameActor for game $gameId started")
 
-  private var gameInfo = GameInfo(gameId, settings.name, 2, settings.password, Seq(), GameStatus.WaitingToStart)
+  private var gameInfo = GameInfo(gameId, settings.name, 4, 2, settings.password, Seq(), GameStatus.WaitingToStart)
   private var gameState = Option.empty[GameState]
 
   private var webSocketActors = Map.empty[Username, Set[ActorRef]]
@@ -29,7 +29,7 @@ class GameActor(gameId: Int, settings: GameSettings) extends Actor with ActorLog
       log.debug(s"User $username left the game #$gameId")
 
     case StartGame =>
-      if (gameInfo.status == GameStatus.WaitingToStart && gameInfo.players.size == gameInfo.playerCount) {
+      if (gameInfo.canStart) {
         gameInfo = gameInfo.copy(status = GameStatus.Running)
         gameState = Some(GameState.initialGameState(gameInfo.players, addFiguresAuto = true))
         notifyGameStateChanged()

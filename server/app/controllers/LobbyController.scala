@@ -67,7 +67,7 @@ class LobbyController @Inject()(val controllerComponents: ControllerComponents,
   def samurai(gameId: Int): Action[AnyContent] = userAction.async { implicit request: UserRequest[AnyContent] =>
     request.username.fold(Future.successful(Redirect(routes.LoginController.login()))) { username =>
       (gameManager ? GameManager.GetGameInfo(gameId)).map {
-        case Some(GameInfo(gameId, name, _, _, players, _)) if players.contains(username) =>
+        case Some(GameInfo(gameId, _, _, _, _, players, _)) if players.contains(username) =>
           val webSocketUrl = routes.LobbyController.gameSocket(gameId).webSocketURL(secure = useSecureSockets)
           Ok(views.html.samurai(webSocketUrl, username.value))
         case _ =>
@@ -79,7 +79,7 @@ class LobbyController @Inject()(val controllerComponents: ControllerComponents,
   def partyLobby(gameId: Int): Action[AnyContent] = userAction.async { implicit request: UserRequest[AnyContent] =>
     request.username.fold(Future.successful(Redirect(routes.LoginController.login()))) { username =>
       (gameManager ? GameManager.GetGameInfo(gameId)).map {
-        case Some(GameInfo(gameId, name, _, _, players, _)) if players.contains(username) =>
+        case Some(GameInfo(gameId, name, _, _, _, players, _)) if players.contains(username) =>
           val webSocketUrl = routes.LobbyController.gameSocket(gameId).webSocketURL(secure = useSecureSockets)
           Ok(views.html.party_lobby(webSocketUrl, username.value, gameId, name, players.map(_.value)))
         case _ =>
@@ -143,7 +143,7 @@ class LobbyController @Inject()(val controllerComponents: ControllerComponents,
   def startGame(gameId: Int): Action[AnyContent] = userAction.async { implicit request: UserRequest[AnyContent] =>
     request.username.fold(Future.successful(Redirect(routes.LoginController.login()))) { username =>
       (gameManager ? GameManager.GetGameInfo(gameId)).flatMap {
-        case Some(GameInfo(gameId, name, playerCount, _, players, _)) if players.contains(username) && players.size == playerCount =>
+        case Some(gi @ GameInfo(gameId, _, _, _, _, players, _)) if players.contains(username) && gi.canStart =>
           (gameManager ? GameManager.RequestStartGame(gameId)).mapTo[Boolean].map {
             case true =>
               Redirect(routes.LobbyController.samurai(gameId))

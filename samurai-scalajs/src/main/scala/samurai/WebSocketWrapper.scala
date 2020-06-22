@@ -3,6 +3,8 @@ package samurai
 import org.scalajs.dom.raw.MessageEvent
 import org.scalajs.dom.{CloseEvent, Event, WebSocket}
 
+import scala.util.{Failure, Success, Try}
+
 class WebSocketWrapper(url: String, onMessage: WebSocket => MessageEvent => (), onOpen: WebSocket => Event => ()) {
 
   private var socket = Option.empty[WebSocket]
@@ -17,17 +19,21 @@ class WebSocketWrapper(url: String, onMessage: WebSocket => MessageEvent => (), 
 
   private def initSocket(): Unit = {
 
-    val newWebSocket = new WebSocket(url)
+    val newWebSocket = Try(new WebSocket(url))
 
-    newWebSocket.onopen = { event =>
-      println("WebSocket opened")
-      onOpen(newWebSocket)(event)
-      socket = Some(newWebSocket)
+    newWebSocket match {
+      case Failure(exception) => println(exception.getMessage)
+      case Success(websocket) =>
+        websocket.onopen = { event =>
+          println("WebSocket opened")
+          onOpen(websocket)(event)
+          socket = Some(websocket)
+        }
+
+        websocket.onclose = onClose
+
+        websocket.onmessage = onMessage(websocket)
     }
-
-    newWebSocket.onclose = onClose
-
-    newWebSocket.onmessage = onMessage(newWebSocket)
   }
 
   def send(message: String): Unit = {

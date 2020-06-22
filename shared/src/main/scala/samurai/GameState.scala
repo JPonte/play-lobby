@@ -66,7 +66,7 @@ case class GameState(board: Board, players: Map[PlayerId, PlayerState], figuresD
         val tokensToDraw = 5 - playerState.tokens.size
         val (newDeck, extraHand) = pickRandomN(playerState.deck, tokensToDraw)
         val newPlayerState = playerState.copy(tokens = playerState.tokens ++ extraHand, deck = newDeck)
-        Some(copy(currentPlayer = (currentPlayer + 1) % 2, fullTokensPlayed = false, characterTokensPlayed = false, players = players + (newPlayerState.playerId -> newPlayerState)))
+        Some(copy(currentPlayer = (currentPlayer + 1) % players.size, fullTokensPlayed = false, characterTokensPlayed = false, players = players + (newPlayerState.playerId -> newPlayerState)))
       case _ =>
         None
     }
@@ -140,6 +140,8 @@ object GameState {
 
   def initialGameState(players: Seq[Username], addFiguresAuto: Boolean = false): GameState = {
 
+    val playerCount = players.size
+
     val playerStates = players.zipWithIndex.map { case (_, i) =>
 
       var tokens: Seq[Token] = Seq(
@@ -169,7 +171,11 @@ object GameState {
       i -> PlayerState(i, hand, tokens, FigureDeck(0, 0, 0), FigureDeck(0, 0, 0))
     }.toMap
 
-    val board = Board.twoPlayerBoard.map {
+    val board = (playerCount match {
+      case 2 => Board.twoPlayerBoard
+      case 3 => Board.threePlayerBoard
+      case _ => Board.fourPlayerBoard
+    }).map {
       case (coords, t) =>
         val figures = if (t == Tile.Edo) {
           Set(Figure.Buddha, Figure.Helmet, Figure.RiceField)
@@ -179,7 +185,13 @@ object GameState {
         coords -> BoardTile(t, figures, None)
     }
 
-    var gameState = GameState(board, playerStates, FigureDeck(6, 6, 6), 0, fullTokensPlayed = false, characterTokensPlayed = false)
+    val figuresCount = playerCount match {
+      case 2 => 6
+      case 3 => 9
+      case _ => 12
+    }
+
+    var gameState = GameState(board, playerStates, FigureDeck(figuresCount, figuresCount, figuresCount), 0, fullTokensPlayed = false, characterTokensPlayed = false)
 
     if (addFiguresAuto) {
       while (gameState.figuresDeck.nonEmpty) {

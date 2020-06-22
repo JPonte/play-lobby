@@ -74,8 +74,8 @@ object MainApp {
       canvas.height = dom.window.innerHeight.toInt
     }
 
-    var gameState = GameState.initialGameState(Seq(Username("Aonte"), Username("Bonte")), addFiguresAuto = true)
-    var gameInfo = GameInfo(0, "Game", 2, None, Seq(Username("Aonte"), Username("Bonte")), GameStatus.Running)
+    var gameState = GameState.initialGameState(Seq(Username("A"), Username("B")), addFiguresAuto = true)
+    var gameInfo = GameInfo(0, "Game", 4, 2, None, Seq(Username("A"), Username("B")), GameStatus.Running)
 
     def selfPlayerId = {
       val i = gameInfo.players.indexOf(username)
@@ -118,21 +118,13 @@ object MainApp {
       gameState.play(gameMove).foreach(gameState = _)
     }
 
-    val cols = gameState.board.keys.map(_.column).max + 1
-    val rows = gameState.board.keys.map(_.row).max + 1
-
     var mouse = MouseState(CanvasPosition(0, 0), down = false)
     var clickPosition = Option(CanvasPosition(0, 0))
     var selectedToken = Option.empty[Int]
 
-    var boardDrawProps = BoardDrawProps(
-      Rect(0, 0, dom.window.innerWidth, dom.window.innerHeight),
-      cols,
-      rows
-    )
+    var boardDrawProps = BoardDrawProps(Rect(0, 0, dom.window.innerWidth, dom.window.innerHeight), 0, 0)
     val maxPlayerTokens = 5
-    var playerTokenDrawProps =
-      PlayerTokenDrawProps(Rect(0, 0, 0, 0), maxPlayerTokens, 1)
+    var playerTokenDrawProps = PlayerTokenDrawProps(Rect(0, 0, 0, 0), maxPlayerTokens, 1)
 
     var endButtonRect = Rect(
       dom.window.innerWidth * 0.85,
@@ -158,6 +150,9 @@ object MainApp {
     }
 
     def draw() {
+
+      val cols = gameState.board.keys.map(_.column).max - gameState.board.keys.map(_.column).min + 1
+      val rows = gameState.board.keys.map(_.row).max - gameState.board.keys.map(_.row).min + 1
 
       boardDrawProps = BoardDrawProps(
         Rect(
